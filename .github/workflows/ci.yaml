@@ -1,0 +1,15 @@
+name: CI Pipeline
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "main"
+    paths-ignore:
+      - ".github/**"
+      - "*.md"
+      - "docs/**"
+
+jobs:
+  CI:
+    uses: ./.github/workflows/.ci-template.yaml
