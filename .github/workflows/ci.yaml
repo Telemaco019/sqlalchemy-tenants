@@ -12,4 +12,4 @@ on:
 
 jobs:
   CI:
-    uses: ./github/workflows/.ci-template.yaml
+    uses: ./github/workflows/.ci-template.yaml@main
