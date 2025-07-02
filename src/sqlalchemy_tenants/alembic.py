@@ -12,10 +12,10 @@ ON %{table_name}
 AS PERMISSIVE
 FOR ALL
 USING (
-    tenant = ( select get_current_tenant()::varchar )
+    tenant = ( select %{get_tenant_fn}()::varchar )
 )
 WITH CHECK (
-    tenant = ( select get_current_tenant()::varchar )
+    tenant = ( select %{get_tenant_fn}()::varchar )
 )
 """
 
@@ -89,7 +89,12 @@ def get_process_revision_directives(
                 )
 
             # List of desired policies
-            policies = {"tenant_policy": _POLICY_TEMPLATE.format(table_name=table_name)}
+            policies = {
+                "tenant_policy": _POLICY_TEMPLATE.format(
+                    table_name=table_name,
+                    get_tenant_fn=_GET_TENANT_FUNCTION_NAME,
+                )
+            }
 
             for policy_name, sql in policies.items():
                 exists = conn.execute(

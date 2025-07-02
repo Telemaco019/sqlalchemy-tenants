@@ -1,11 +1,7 @@
-import uuid
-from datetime import datetime
-from typing import Any, Dict, Type
+from typing import Type
 
-import sqlalchemy
 from sqlalchemy import inspect
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_column
+from sqlalchemy.orm import DeclarativeBase
 
 
 def with_rls(cls: Type[DeclarativeBase]) -> Type[DeclarativeBase]:
@@ -38,33 +34,3 @@ def with_rls(cls: Type[DeclarativeBase]) -> Type[DeclarativeBase]:
 
     cls.__table__.__rls_enabled__ = True
     return cls
-
-
-class TenantsBase(MappedAsDataclass, DeclarativeBase): ...
-
-
-class TenantOrm(TenantsBase):
-    __tablename__ = "tenant"
-
-    id: Mapped[uuid.UUID] = mapped_column(
-        sqlalchemy.UUID(),
-        primary_key=True,
-    )
-    slug: Mapped[str] = mapped_column(index=True)
-    pg_role: Mapped[str] = mapped_column(index=True)
-    settings: Mapped[Dict[str, Any]] = mapped_column(JSONB)
-
-    updated_at: Mapped[datetime] = mapped_column(
-        sqlalchemy.TIMESTAMP(timezone=True),
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        sqlalchemy.TIMESTAMP(timezone=True),
-    )
-
-
-class TenantMixin:
-    """
-    Mixin class to add a 'tenant' column to SQLAlchemy models.
-    """
-
-    tenant: Mapped[str] = mapped_column(index=True)
