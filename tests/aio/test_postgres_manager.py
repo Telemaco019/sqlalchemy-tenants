@@ -7,6 +7,7 @@ from src.sqlalchemy_tenants.exceptions import TenantAlreadyExistsError
 
 fake = Faker()
 
+
 def new_tenant() -> str:
     return f"test_{str(fake.uuid4())}"
 
@@ -19,6 +20,7 @@ class TestListTenants:
         )
         res = await manager.list_tenants()
         assert res == set()
+
 
 class TestCreateTenant:
     async def test_create_tenant(self, async_engine: AsyncEngine) -> None:

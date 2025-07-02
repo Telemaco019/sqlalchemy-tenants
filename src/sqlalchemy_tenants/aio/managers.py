@@ -64,10 +64,14 @@ class PostgresManager:
         return result.scalar() is not None
 
     async def _create_role(self, sess: AsyncSession, role: str) -> None:
-        role_quoted = postgresql.dialect().identifier_preparer.quote(role)
+        role_quoted = postgresql.dialect().identifier_preparer.quote(  # type: ignore[no-untyped-call]
+            role
+        )
         await sess.execute(text(f"CREATE ROLE {role_quoted}"))
         await sess.execute(text(f"GRANT {role_quoted} TO {self.engine.url.username}"))
-        await sess.execute(text(f"GRANT USAGE ON SCHEMA {self.schema} TO {role_quoted}"))
+        await sess.execute(
+            text(f"GRANT USAGE ON SCHEMA {self.schema} TO {role_quoted}")
+        )
 
     async def create_tenant(self, tenant: str) -> None:
         async with self.new_admin_session() as sess:
@@ -87,8 +91,7 @@ class PostgresManager:
                 ).bindparams(prefix=f"{self.tenant_role_prefix}%")
             )
             return {
-                row[0].removeprefix(self.tenant_role_prefix)
-                for row in result.all()
+                row[0].removeprefix(self.tenant_role_prefix) for row in result.all()
             }
 
     @asynccontextmanager
