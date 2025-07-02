@@ -115,3 +115,9 @@ skip_empty = true
 
 [tool.coverage.html]
 show_contexts = true
+
+[tool.pytest.ini_options]
+addopts = ["--strict-config", "--strict-markers"]
+minversion = "8.0"
+testpaths = ["tests"]
+asyncio_mode = "auto"
