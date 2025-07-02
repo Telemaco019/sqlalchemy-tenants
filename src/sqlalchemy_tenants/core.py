@@ -1,3 +1,4 @@
+import re
 from typing import Callable, Iterable, List, Optional, Sequence, Type, Union
 
 from alembic.operations import MigrationScript, ops
@@ -9,16 +10,31 @@ _GET_TENANT_FUNCTION_NAME = "sqlalchemy_tenants_get_tenant"
 
 _POLICY_TEMPLATE = """\
 CREATE POLICY tenant_select_policy 
-ON %{table_name}
+ON {table_name}
 AS PERMISSIVE
 FOR ALL
 USING (
-    tenant = ( select %{get_tenant_fn}()::varchar )
+    tenant = ( select {get_tenant_fn}()::varchar )
 )
 WITH CHECK (
-    tenant = ( select %{get_tenant_fn}()::varchar )
+    tenant = ( select {get_tenant_fn}()::varchar )
 )
 """
+
+
+def _normalize_whitespace(s: str) -> str:
+    return re.sub(r"\s+", " ", s.strip())
+
+
+def get_table_policy(table_name: str) -> str:
+    """
+    Returns the SQL policy for a given table name.
+    """
+    policy = _POLICY_TEMPLATE.format(
+        table_name=table_name,
+        get_tenant_fn=_GET_TENANT_FUNCTION_NAME,
+    )
+    return _normalize_whitespace(policy)
 
 
 def _function_exists(connection: Connection, name: str) -> bool:
@@ -77,9 +93,18 @@ def get_process_revision_directives(
             # Check if RLS is already enabled
             rls_enabled = conn.execute(
                 text(
-                    f"SELECT relrowsecurity FROM pg_class "
-                    f"WHERE oid = '{table_name}'::regclass"
-                )
+                    """
+                    SELECT relrowsecurity
+                    FROM pg_class
+                    WHERE oid = (
+                        SELECT oid
+                        FROM pg_class
+                        WHERE relname = :table_name
+                        LIMIT 1
+                    )
+                    """
+                ),
+                {"table_name": table_name},
             ).scalar()
 
             if not rls_enabled:
@@ -91,20 +116,26 @@ def get_process_revision_directives(
 
             # List of desired policies
             policies = {
-                "tenant_policy": _POLICY_TEMPLATE.format(
-                    table_name=table_name,
-                    get_tenant_fn=_GET_TENANT_FUNCTION_NAME,
-                )
+                "tenant_policy": get_table_policy(table_name),
             }
 
             for policy_name, sql in policies.items():
                 exists = conn.execute(
                     text(
-                        f"SELECT 1 FROM pg_policy WHERE polname = '{policy_name}'"
-                        f"AND polrelid = '{table_name}'::regclass"
+                        """
+                        SELECT 1
+                        FROM pg_policy
+                        WHERE polname = :policy_name
+                          AND polrelid = (
+                            SELECT oid
+                            FROM pg_class
+                            WHERE relname = :table_name
+                            LIMIT 1
+                        )
+                        """
                     ),
+                    {"policy_name": policy_name, "table_name": table_name},
                 ).fetchone()
-
                 if not exists:
                     upgrade_ops.append(ops.ExecuteSQLOp(sql))
 
