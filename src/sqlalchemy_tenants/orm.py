@@ -32,5 +32,5 @@ def with_rls(cls: Type[DeclarativeBase]) -> Type[DeclarativeBase]:
             "easily."
         )
 
-    cls.__table__.__rls_enabled__ = True
+    cls.__table__.__rls_enabled__ = True  # type: ignore[attr-defined]
     return cls
