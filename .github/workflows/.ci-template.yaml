@@ -48,8 +48,5 @@ jobs:
       - name: Start services
         run: docker compose up -d
 
-      - name: Run linters
+      - name: Run checks
         run: make check
-
-      - name: Run tests
-        run: make test
