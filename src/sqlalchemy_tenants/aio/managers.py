@@ -1,9 +1,10 @@
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator, Self, Set
+from typing import AsyncGenerator, Set
 
 from sqlalchemy import text
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
+from typing_extensions import Self
 
 from src.sqlalchemy_tenants.exceptions import TenantAlreadyExistsError
 
