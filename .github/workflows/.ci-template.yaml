@@ -45,6 +45,9 @@ jobs:
       - name: Activate venv
         run: source $VENV || source .venv/bin/activate
 
+      - name: Start services
+        run: docker compose up -d
+
       - name: Run linters
         run: make check
 
