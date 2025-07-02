@@ -6,7 +6,10 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from typing_extensions import Self
 
-from src.sqlalchemy_tenants.exceptions import TenantAlreadyExistsError
+from src.sqlalchemy_tenants.exceptions import (
+    TenantAlreadyExistsError,
+    TenantNotFoundError,
+)
 
 
 class PostgresManager:
@@ -64,24 +67,38 @@ class PostgresManager:
         )
         return result.scalar() is not None
 
-    async def _create_role(self, sess: AsyncSession, role: str) -> None:
-        role_quoted = postgresql.dialect().identifier_preparer.quote(  # type: ignore[no-untyped-call]
-            role
-        )
-        await sess.execute(text(f"CREATE ROLE {role_quoted}"))
-        await sess.execute(text(f"GRANT {role_quoted} TO {self.engine.url.username}"))
-        await sess.execute(
-            text(f"GRANT USAGE ON SCHEMA {self.schema} TO {role_quoted}")
-        )
+    @staticmethod
+    def _quote_role(role: str) -> str:
+        """Quote the role name to prevent SQL injection."""
+        return postgresql.dialect().identifier_preparer.quote(role)  # type: ignore[no-untyped-call]
 
     async def create_tenant(self, tenant: str) -> None:
         async with self.new_admin_session() as sess:
             role = self.get_tenant_role_name(tenant)
+            safe_role = self._quote_role(role)
             # Check if the role already exists
             if await self._role_exists(sess, role):
                 raise TenantAlreadyExistsError(tenant)
             # Create the tenant role
-            await self._create_role(sess, role)
+            await sess.execute(text(f"CREATE ROLE {safe_role}"))
+            await sess.execute(text(f"GRANT {safe_role} TO {self.engine.url.username}"))
+            await sess.execute(
+                text(f"GRANT USAGE ON SCHEMA {self.schema} TO {safe_role}")
+            )
+            await sess.commit()
+
+    async def delete_tenant(self, tenant: str) -> None:
+        async with self.new_admin_session() as sess:
+            role = self.get_tenant_role_name(tenant)
+            safe_role = self._quote_role(role)
+            # Check if the role exists
+            if not await self._role_exists(sess, role):
+                raise TenantNotFoundError(tenant)
+            await sess.execute(
+                text(f'REASSIGN OWNED BY {safe_role} TO "{self.engine.url.username}"')
+            )
+            await sess.execute(text(f"DROP OWNED BY {safe_role}"))
+            await sess.execute(text(f"DROP ROLE {safe_role}"))
             await sess.commit()
 
     async def list_tenants(self) -> Set[str]:

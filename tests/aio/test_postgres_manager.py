@@ -3,7 +3,10 @@ from faker import Faker
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from src.sqlalchemy_tenants.aio.managers import PostgresManager
-from src.sqlalchemy_tenants.exceptions import TenantAlreadyExistsError
+from src.sqlalchemy_tenants.exceptions import (
+    TenantAlreadyExistsError,
+    TenantNotFoundError,
+)
 
 fake = Faker()
 
@@ -20,6 +23,19 @@ class TestListTenants:
         )
         res = await manager.list_tenants()
         assert res == set()
+
+    async def test_multiple_tenants(self, async_engine: AsyncEngine) -> None:
+        manager = PostgresManager.from_engine(
+            async_engine,
+            schema_name="public",
+        )
+        tenant_1 = new_tenant()
+        tenant_2 = new_tenant()
+        await manager.create_tenant(tenant_1)
+        await manager.create_tenant(tenant_2)
+        res = await manager.list_tenants()
+
+        assert res == {tenant_1, tenant_2}
 
 
 class TestCreateTenant:
@@ -40,6 +56,26 @@ class TestCreateTenant:
         )
         tenant_name = new_tenant()
         await manager.create_tenant(tenant_name)
-
         with pytest.raises(TenantAlreadyExistsError):
             await manager.create_tenant(tenant_name)
+
+
+class TestDeleteTenant:
+    async def test_delete_tenant(self, async_engine: AsyncEngine) -> None:
+        manager = PostgresManager.from_engine(
+            async_engine,
+            schema_name="public",
+        )
+        tenant_name = new_tenant()
+        await manager.create_tenant(tenant_name)
+        await manager.delete_tenant(tenant_name)
+        res = await manager.list_tenants()
+        assert tenant_name not in res
+
+    async def test_delete_nonexistent_tenant(self, async_engine: AsyncEngine) -> None:
+        manager = PostgresManager.from_engine(
+            async_engine,
+            schema_name="public",
+        )
+        with pytest.raises(TenantNotFoundError):
+            await manager.delete_tenant(new_tenant())

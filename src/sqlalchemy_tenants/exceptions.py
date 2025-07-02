@@ -7,3 +7,10 @@ class TenantAlreadyExistsError(SqlalchemyTenantErr):
 
     def __init__(self, tenant: str) -> None:
         super().__init__(f"Tenant '{tenant}' already exists.")
+
+
+class TenantNotFoundError(SqlalchemyTenantErr):
+    """Raised when a tenant is not found."""
+
+    def __init__(self, tenant: str) -> None:
+        super().__init__(f"Tenant '{tenant}' not found.")
