@@ -8,7 +8,7 @@ from alembic.config import Config
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.sqlalchemy_tenants.core import get_table_policy, with_rls
-from tests.conftest import Base, TestTable
+from tests.conftest import Base, TableTest
 
 
 class MissingTenantTable(Base):
@@ -46,5 +46,5 @@ class TestWithRLS:
         migration_content = migration_file.read_text()
         # 5. Check for RLS SQL
         assert "ENABLE ROW LEVEL SECURITY" in migration_content, migration_content
-        expected_policy = get_table_policy(TestTable.__tablename__)
+        expected_policy = get_table_policy(TableTest.__tablename__)
         assert expected_policy in migration_content, migration_content

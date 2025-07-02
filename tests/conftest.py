@@ -15,7 +15,7 @@ class Base(MappedAsDataclass, DeclarativeBase):
 
 
 @with_rls
-class TestTable(Base):
+class TableTest(Base):
     __tablename__ = "test_table"
 
     id: Mapped[int] = mapped_column(primary_key=True)
