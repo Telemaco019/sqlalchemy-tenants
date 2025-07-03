@@ -2,7 +2,7 @@ import asyncio
 import sys
 from asyncio import AbstractEventLoop
 from pathlib import Path
-from typing import Any, Generator
+from typing import Any, AsyncGenerator, Generator
 
 import pytest
 from alembic import command
@@ -31,11 +31,19 @@ def postgres_dsn() -> str:
 
 
 @pytest.fixture(scope="function")
-def alembic_upgrade_downgrade(alembic_config: Config) -> Generator[None, None, None]:
-    command.revision(alembic_config, message="init", autogenerate=True)
-    command.upgrade(alembic_config, "head")
+async def alembic_upgrade_downgrade(
+    alembic_config: Config,
+) -> AsyncGenerator[None, None]:
+    def _do_upgrade() -> None:
+        command.revision(alembic_config, message="init", autogenerate=True)
+        command.upgrade(alembic_config, "head")
+
+    def _do_downgrade() -> None:
+        command.downgrade(alembic_config, "base")
+
+    await asyncio.to_thread(_do_upgrade)
     yield
-    command.downgrade(alembic_config, "base")
+    await asyncio.to_thread(_do_downgrade)
 
 
 @pytest.fixture(scope="session")

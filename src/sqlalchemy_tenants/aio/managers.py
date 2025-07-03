@@ -71,6 +71,18 @@ class PostgresManager:
             await sess.execute(
                 text(f"GRANT USAGE ON SCHEMA {self.schema} TO {safe_role}")
             )
+            await sess.execute(
+                text(
+                    f"GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES "
+                    f"IN SCHEMA {self.schema} TO {safe_role};"
+                )
+            )
+            await sess.execute(
+                text(
+                    f"ALTER DEFAULT PRIVILEGES IN SCHEMA {self.schema} "
+                    f"GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO {safe_role};"
+                )
+            )
             await sess.commit()
 
     async def delete_tenant(self, tenant: str) -> None:
