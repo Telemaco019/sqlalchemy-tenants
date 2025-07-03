@@ -1,0 +1,10 @@
+site_name: sqlalchemy-tenants
+
+theme:
+  name: material
+  palette:
+    primary: indigo
+    accent: indigo
+
+plugins:
+  - mkdocstrings
