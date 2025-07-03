@@ -1,11 +1,16 @@
-import re
 from typing import Callable, Iterable, List, Optional, Sequence, Type, Union
 
 from alembic.operations import MigrationScript, ops
 from alembic.runtime.migration import MigrationContext
-from sqlalchemy import Connection, MetaData, inspect, text
+from sqlalchemy import MetaData, inspect, text
 from sqlalchemy.orm import DeclarativeBase
 
+from src.sqlalchemy_tenants.utils import (
+    function_exists,
+    normalize_whitespace,
+)
+
+TENANT_ROLE_PREFIX = "tenant_"
 GET_TENANT_FUNCTION_NAME = "sqlalchemy_tenants_get_tenant"
 
 _POLICY_NAME = "sqlalchemy_tenants_all"
@@ -22,11 +27,17 @@ WITH CHECK (
 )
 """
 
-TENANT_ROLE_PREFIX = "tenant_"
-
-
-def _normalize_whitespace(s: str) -> str:
-    return re.sub(r"\s+", " ", s.strip())
+_GET_TENANT_FUNCTION_TEMPLATE = """ \
+CREATE OR REPLACE FUNCTION {name}()
+    RETURNS text
+    LANGUAGE sql
+    SECURITY DEFINER
+    STABLE
+AS
+$$
+    SELECT replace(current_user, '{tenant_role_prefix}', '')
+$$;
+"""
 
 
 def get_table_policy(table_name: str) -> str:
@@ -38,20 +49,7 @@ def get_table_policy(table_name: str) -> str:
         get_tenant_fn=GET_TENANT_FUNCTION_NAME,
         policy_name=_POLICY_NAME,
     )
-    return _normalize_whitespace(policy)
-
-
-def _function_exists(connection: Connection, name: str) -> bool:
-    sql = text(
-        """
-        SELECT 1
-        FROM pg_proc
-        JOIN pg_namespace ns ON ns.oid = pg_proc.pronamespace
-        WHERE proname = :name
-    """
-    )
-    result = connection.execute(sql, {"name": name})
-    return result.first() is not None
+    return normalize_whitespace(policy)
 
 
 def get_tenant_role_name(tenant: str) -> str:
@@ -96,22 +94,12 @@ def get_process_revision_directives(
             raise RuntimeError("No connection available in the migration context.")
 
         # Check if required functions need to be created
-        if _function_exists(conn, GET_TENANT_FUNCTION_NAME) is False:
-            upgrade_ops.append(
-                ops.ExecuteSQLOp(
-                    f"""
-                    CREATE OR REPLACE FUNCTION {GET_TENANT_FUNCTION_NAME}()
-                        RETURNS text
-                        LANGUAGE sql
-                        SECURITY DEFINER
-                        STABLE
-                    AS
-                    $$
-                        SELECT replace(current_user, '{TENANT_ROLE_PREFIX}', '')
-                    $$;
-                 """
-                )
+        if not function_exists(conn, GET_TENANT_FUNCTION_NAME):
+            get_tenant_fn = _GET_TENANT_FUNCTION_TEMPLATE.format(
+                name=GET_TENANT_FUNCTION_NAME,
+                tenant_role_prefix=TENANT_ROLE_PREFIX,
             )
+            upgrade_ops.append(ops.ExecuteSQLOp(get_tenant_fn))
             downgrade_ops.insert(
                 0,
                 ops.ExecuteSQLOp(
