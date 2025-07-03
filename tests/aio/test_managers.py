@@ -1,11 +1,12 @@
 import pytest
 from faker import Faker
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from src.sqlalchemy_tenants.aio.managers import PostgresManager
 from src.sqlalchemy_tenants.exceptions import (
-    TenantAlreadyExistsError,
-    TenantNotFoundError,
+    TenantAlreadyExists,
+    TenantNotFound,
 )
 
 fake = Faker()
@@ -56,7 +57,7 @@ class TestCreateTenant:
         )
         tenant_name = new_tenant()
         await manager.create_tenant(tenant_name)
-        with pytest.raises(TenantAlreadyExistsError):
+        with pytest.raises(TenantAlreadyExists):
             await manager.create_tenant(tenant_name)
 
 
@@ -77,5 +78,40 @@ class TestDeleteTenant:
             async_engine,
             schema_name="public",
         )
-        with pytest.raises(TenantNotFoundError):
+        with pytest.raises(TenantNotFound):
             await manager.delete_tenant(new_tenant())
+
+
+class TestTenantSession:
+    async def test_tenant_not_found(self, async_engine: AsyncEngine) -> None:
+        manager = PostgresManager.from_engine(
+            async_engine,
+            schema_name="public",
+        )
+        with pytest.raises(TenantNotFound):
+            async with manager.new_session(new_tenant()):
+                pass
+
+    async def test_success(self, async_engine: AsyncEngine) -> None:
+        manager = PostgresManager.from_engine(
+            async_engine,
+            schema_name="public",
+        )
+        tenant_name = new_tenant()
+        await manager.create_tenant(tenant_name)
+        async with manager.new_session(tenant_name) as sess:
+            assert sess is not None
+            user = (await sess.execute(text("SELECT current_user"))).scalar()
+            assert user == manager.get_tenant_role_name(tenant_name)
+
+
+class TestAdminSession:
+    async def test_admin_session(self, async_engine: AsyncEngine) -> None:
+        manager = PostgresManager.from_engine(
+            async_engine,
+            schema_name="public",
+        )
+        async with manager.new_admin_session() as sess:
+            assert sess is not None
+            user = (await sess.execute(text("SELECT current_user"))).scalar()
+            assert user == manager.engine.url.username

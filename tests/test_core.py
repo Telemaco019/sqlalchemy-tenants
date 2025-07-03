@@ -11,15 +11,14 @@ from src.sqlalchemy_tenants.core import get_table_policy, with_rls
 from tests.conftest import Base, TableTest
 
 
-class MissingTenantTable(Base):
-    __tablename__ = "missing_tenant_table"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column()
-
-
 class TestWithRLS:
     def test_missing_tenant_column(self) -> None:
+        class MissingTenantTable(Base):
+            __tablename__ = "missing_tenant_table"
+
+            id: Mapped[int] = mapped_column(primary_key=True)
+            name: Mapped[str] = mapped_column()
+
         with pytest.raises(TypeError):
             with_rls(MissingTenantTable)
 

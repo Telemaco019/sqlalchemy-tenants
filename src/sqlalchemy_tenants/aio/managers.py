@@ -3,12 +3,13 @@ from typing import AsyncGenerator, Set
 
 from sqlalchemy import text
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from typing_extensions import Self
 
 from src.sqlalchemy_tenants.exceptions import (
-    TenantAlreadyExistsError,
-    TenantNotFoundError,
+    TenantAlreadyExists,
+    TenantNotFound,
 )
 
 
@@ -78,7 +79,7 @@ class PostgresManager:
             safe_role = self._quote_role(role)
             # Check if the role already exists
             if await self._role_exists(sess, role):
-                raise TenantAlreadyExistsError(tenant)
+                raise TenantAlreadyExists(tenant)
             # Create the tenant role
             await sess.execute(text(f"CREATE ROLE {safe_role}"))
             await sess.execute(text(f"GRANT {safe_role} TO {self.engine.url.username}"))
@@ -93,7 +94,7 @@ class PostgresManager:
             safe_role = self._quote_role(role)
             # Check if the role exists
             if not await self._role_exists(sess, role):
-                raise TenantNotFoundError(tenant)
+                raise TenantNotFound(tenant)
             await sess.execute(
                 text(f'REASSIGN OWNED BY {safe_role} TO "{self.engine.url.username}"')
             )
@@ -117,7 +118,12 @@ class PostgresManager:
         """Create a new session for the given tenant."""
         async with self.session_maker() as session:
             role = self.get_tenant_role_name(tenant)
-            await session.execute(text(f"SET SESSION ROLE {role}"))
+            safe_role = self._quote_role(role)
+            try:
+                await session.execute(text(f"SET SESSION ROLE {safe_role}"))
+            except DBAPIError as e:
+                if e.args and "does not exist" in e.args[0]:
+                    raise TenantNotFound(f"Role '{role}' does not exist") from e
             yield session
 
     @asynccontextmanager
