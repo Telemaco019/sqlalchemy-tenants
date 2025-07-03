@@ -1,5 +1,3 @@
-import pathlib
-import sys
 from pathlib import Path
 
 import pytest
@@ -23,21 +21,13 @@ class TestWithRLS:
             with_rls(MissingTenantTable)
 
     def test_alembic_end_to_end_rls(
-        self, postgres_dsn: str, alembic_dir: Path, alembic_ini: Path, tmp_path: Path
+        self,
+        postgres_dsn: str,
+        alembic_versions_dir: Path,
+        alembic_config: Config,
     ) -> None:
-        # Generate a migration
-        alembic_versions_dir = tmp_path / "versions"
-        sys.path.insert(
-            0, str(pathlib.Path().absolute())
-        )  # Ensure project root is importable
-        alembic_cfg = Config(file_=alembic_ini.as_posix())
-        alembic_cfg.set_main_option("script_location", alembic_dir.as_posix())
-        alembic_cfg.set_main_option("sqlalchemy.url", postgres_dsn)
-        alembic_cfg.set_main_option(
-            "version_locations", alembic_versions_dir.as_posix()
-        )
         # revision will be created in versions_dir
-        command.revision(alembic_cfg, message="test rls", autogenerate=True)
+        command.revision(alembic_config, message="test rls", autogenerate=True)
         # Find the generated migration file
         migration_files = list(alembic_versions_dir.glob("*.py"))
         assert migration_files, "No migration file generated!"
