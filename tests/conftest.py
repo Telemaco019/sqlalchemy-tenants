@@ -25,6 +25,14 @@ class TableTest(Base):
     tenant: Mapped[str] = mapped_column()
 
 
+class AnotherTable(Base):
+    __tablename__ = "test_another_table"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column()
+    tenant: Mapped[str] = mapped_column()
+
+
 @pytest.fixture(scope="session")
 def postgres_dsn() -> str:
     return "postgresql+asyncpg://postgres:changethis@localhost:5459/tests"
