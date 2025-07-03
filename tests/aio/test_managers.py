@@ -1,7 +1,8 @@
 import pytest
 from alembic.config import Config
 from faker import Faker
-from sqlalchemy import select, text
+from sqlalchemy import delete, select, text, update
+from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from src.sqlalchemy_tenants.aio.managers import PostgresManager
@@ -143,18 +144,48 @@ async def test_rls_is_enforced(
     )
     for tenant in tenant_rows:
         await manager.create_tenant(tenant)
+    # Check that admin can insert data for all tenants
     async with manager.new_admin_session() as session:
         for tenant, rows in tenant_rows.items():
             session.add_all(rows)
         await session.commit()
     # Check that the admin can see all data
     async with manager.new_admin_session() as sess:
-        res = (await sess.execute(select(TableTest))).scalars().all()
-        assert len(res) == 4
-        assert all(r.tenant in tenant_rows for r in res)
+        admin_curs = (await sess.execute(select(TableTest))).scalars().all()
+        assert len(admin_curs) == 4
+        assert all(r.tenant in tenant_rows for r in admin_curs)
     # Check that tenants can only see their own data
     for tenant, rows in tenant_rows.items():
         async with manager.new_session(tenant=tenant) as sess:
-            res = (await sess.execute(select(TableTest))).scalars().all()
-            assert len(res) == len(rows)
-            assert all(r.tenant == tenant for r in res)
+            tenant_curs = (await sess.execute(select(TableTest))).scalars().all()
+            assert len(tenant_curs) == len(rows)
+            assert all(r.tenant == tenant for r in tenant_curs)
+    # Check that tenant-1 can't insert data for tenant-2
+    async with manager.new_session(tenant=tenant_1) as sess:
+        with pytest.raises(ProgrammingError):
+            sess.add(TableTest(id=5, name="Invalid Row", tenant=tenant_2))
+            await sess.commit()
+    # Check that tenant-1 can't delete data for tenant-2
+    async with manager.new_session(tenant=tenant_1) as sess:
+        await sess.execute(delete(TableTest).where(TableTest.tenant == tenant_2))
+        await sess.commit()
+    async with manager.new_session(tenant=tenant_2) as sess:
+        tenant_2_curs = await sess.execute(
+            select(TableTest).where(TableTest.tenant == tenant_2)
+        )
+        assert len(tenant_2_curs.scalars().all()) == len(tenant_rows[tenant_2])
+    # Check that tenant-1 can't update data for tenant-2
+    async with manager.new_session(tenant=tenant_1) as sess:
+        await sess.execute(
+            update(TableTest)
+            .where(TableTest.tenant == tenant_2)
+            .values(tenant=tenant_1)
+        )
+        await sess.commit()
+    async with manager.new_session(tenant=tenant_2) as sess:
+        tenant_2_curs = await sess.execute(
+            select(TableTest).where(TableTest.tenant == tenant_2)
+        )
+        assert len(tenant_2_curs.scalars().all()) == len(tenant_rows[tenant_2])
+        # Ensure no rows were updated to tenant_1
+        assert all(r.tenant == tenant_2 for r in tenant_2_curs.scalars().all())
