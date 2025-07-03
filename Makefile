@@ -6,12 +6,12 @@ help: ## Display this help.
 
 ##@ Dev
 .PHONY:
-start-services: ## Start the services locally
+start-services: stop-services ## Start the services locally
 	docker compose up -d db
 
 .PHONY:
 stop-services: ## Stop the services running locally
-	docker compose down --remove-orphans db
+	docker compose down --remove-orphans -v
 
 .PHONY: test
 test: ## Run the unit tests

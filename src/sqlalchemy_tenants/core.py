@@ -6,10 +6,11 @@ from alembic.runtime.migration import MigrationContext
 from sqlalchemy import Connection, MetaData, inspect, text
 from sqlalchemy.orm import DeclarativeBase
 
-_GET_TENANT_FUNCTION_NAME = "sqlalchemy_tenants_get_tenant"
+GET_TENANT_FUNCTION_NAME = "sqlalchemy_tenants_get_tenant"
 
+_POLICY_NAME = "sqlalchemy_tenants_all"
 _POLICY_TEMPLATE = """\
-CREATE POLICY tenant_select_policy 
+CREATE POLICY {policy_name} 
 ON {table_name}
 AS PERMISSIVE
 FOR ALL
@@ -20,6 +21,8 @@ WITH CHECK (
     tenant = ( select {get_tenant_fn}()::varchar )
 )
 """
+
+TENANT_ROLE_PREFIX = "tenant_"
 
 
 def _normalize_whitespace(s: str) -> str:
@@ -32,7 +35,8 @@ def get_table_policy(table_name: str) -> str:
     """
     policy = _POLICY_TEMPLATE.format(
         table_name=table_name,
-        get_tenant_fn=_GET_TENANT_FUNCTION_NAME,
+        get_tenant_fn=GET_TENANT_FUNCTION_NAME,
+        policy_name=_POLICY_NAME,
     )
     return _normalize_whitespace(policy)
 
@@ -48,6 +52,19 @@ def _function_exists(connection: Connection, name: str) -> bool:
     )
     result = connection.execute(sql, {"name": name})
     return result.first() is not None
+
+
+def get_tenant_role_name(tenant: str) -> str:
+    """
+    Get the Postgres role name for the given tenant.
+
+    Args:
+        tenant: the tenant slug.
+
+    Returns:
+        The Postgres role name for the tenant.
+    """
+    return f"{TENANT_ROLE_PREFIX}{tenant}"
 
 
 def get_process_revision_directives(
@@ -72,14 +89,35 @@ def get_process_revision_directives(
             return
         script = directives[0]
         upgrade_ops = script.upgrade_ops.ops  # type: ignore[union-attr]
+        downgrade_ops = script.downgrade_ops.ops  # type: ignore[union-attr]
 
         conn = context.connection
         if conn is None:
             raise RuntimeError("No connection available in the migration context.")
 
         # Check if required functions need to be created
-        if _function_exists(conn, _GET_TENANT_FUNCTION_NAME) is False:
-            pass
+        if _function_exists(conn, GET_TENANT_FUNCTION_NAME) is False:
+            upgrade_ops.append(
+                ops.ExecuteSQLOp(
+                    f"""
+                    CREATE OR REPLACE FUNCTION {GET_TENANT_FUNCTION_NAME}()
+                        RETURNS text
+                        LANGUAGE sql
+                        SECURITY DEFINER
+                        STABLE
+                    AS
+                    $$
+                        SELECT replace(current_user, '{TENANT_ROLE_PREFIX}', '')
+                    $$;
+                 """
+                )
+            )
+            downgrade_ops.insert(
+                0,
+                ops.ExecuteSQLOp(
+                    f"DROP FUNCTION IF EXISTS {GET_TENANT_FUNCTION_NAME}()"
+                ),
+            )
 
         # Check if RLS needs to be enabled on each table
         for table in tables:
@@ -113,31 +151,37 @@ def get_process_revision_directives(
                         f"ALTER TABLE {table_name} ENABLE ROW LEVEL SECURITY"
                     )
                 )
-
-            # List of desired policies
-            policies = {
-                "tenant_policy": get_table_policy(table_name),
-            }
-
-            for policy_name, sql in policies.items():
-                exists = conn.execute(
-                    text(
-                        """
-                        SELECT 1
-                        FROM pg_policy
-                        WHERE polname = :policy_name
-                          AND polrelid = (
-                            SELECT oid
-                            FROM pg_class
-                            WHERE relname = :table_name
-                            LIMIT 1
-                        )
-                        """
+                downgrade_ops.insert(
+                    0,
+                    ops.ExecuteSQLOp(
+                        f"ALTER TABLE {table_name} DISABLE ROW LEVEL SECURITY"
                     ),
-                    {"policy_name": policy_name, "table_name": table_name},
-                ).fetchone()
-                if not exists:
-                    upgrade_ops.append(ops.ExecuteSQLOp(sql))
+                )
+
+            # Create policy
+            policy_name = "sqlalchemy_tenants_all"
+            policy = get_table_policy(table_name)
+            exists = conn.execute(
+                text(
+                    """
+                    SELECT 1
+                    FROM pg_policy
+                    WHERE polname = :policy_name
+                      AND polrelid = (
+                        SELECT oid
+                        FROM pg_class
+                        WHERE relname = :table_name
+                        LIMIT 1
+                    )
+                    """
+                ),
+                {"policy_name": policy_name, "table_name": table_name},
+            ).fetchone()
+            if not exists:
+                upgrade_ops.append(ops.ExecuteSQLOp(policy))
+                downgrade_ops.insert(
+                    0, ops.ExecuteSQLOp(f"DROP POLICY {policy_name} ON {table_name}")
+                )
 
     return process_revision_directives
 

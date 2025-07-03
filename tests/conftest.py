@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import Any, Generator
 
 import pytest
+from alembic import command
 from alembic.config import Config
-from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_column
 
 from src.sqlalchemy_tenants.core import with_rls
@@ -28,6 +28,14 @@ class TableTest(Base):
 @pytest.fixture(scope="session")
 def postgres_dsn() -> str:
     return "postgresql+asyncpg://postgres:changethis@localhost:5459/tests"
+
+
+@pytest.fixture(scope="function")
+def alembic_upgrade_downgrade(alembic_config: Config) -> Generator[None, None, None]:
+    command.revision(alembic_config, message="init", autogenerate=True)
+    command.upgrade(alembic_config, "head")
+    yield
+    command.downgrade(alembic_config, "base")
 
 
 @pytest.fixture(scope="session")
@@ -60,17 +68,6 @@ def alembic_config(
 @pytest.fixture(scope="session")
 def alembic_ini(alembic_dir: Path) -> Path:
     return alembic_dir / "alembic.ini"
-
-
-@pytest.fixture(scope="session")
-def create_orm_tables(postgres_dsn: str) -> Generator[None, None, None]:
-    engine = create_engine(
-        postgres_dsn,
-        echo=True,
-    )
-    Base.metadata.create_all(engine)
-    yield
-    Base.metadata.drop_all(engine)
 
 
 @pytest.fixture(scope="session", autouse=True)

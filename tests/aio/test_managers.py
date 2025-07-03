@@ -4,6 +4,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from src.sqlalchemy_tenants.aio.managers import PostgresManager
+from src.sqlalchemy_tenants.core import get_tenant_role_name
 from src.sqlalchemy_tenants.exceptions import (
     TenantAlreadyExists,
     TenantNotFound,
@@ -35,7 +36,6 @@ class TestListTenants:
         await manager.create_tenant(tenant_1)
         await manager.create_tenant(tenant_2)
         res = await manager.list_tenants()
-
         assert res == {tenant_1, tenant_2}
 
 
@@ -102,7 +102,7 @@ class TestTenantSession:
         async with manager.new_session(tenant_name) as sess:
             assert sess is not None
             user = (await sess.execute(text("SELECT current_user"))).scalar()
-            assert user == manager.get_tenant_role_name(tenant_name)
+            assert user == get_tenant_role_name(tenant_name)
 
 
 class TestAdminSession:
