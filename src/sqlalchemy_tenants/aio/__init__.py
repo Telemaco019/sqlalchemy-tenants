@@ -1,4 +1,3 @@
-
 from .managers import PostgresManager
 
 __all__ = [
