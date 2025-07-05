@@ -1,6 +1,6 @@
 [project]
 name = "sqlalchemy-tenants"
-version = "0.1.0"
+version = "0.0.1"
 description = "Add your description here"
 readme = "README.md"
 authors = [
@@ -27,6 +27,7 @@ dev = [
     "mkdocs-material>=9.6.15",
     "mkdocstrings[python]>=0.29.1",
     "mypy>=1.15.0",
+    "psycopg>=3.2.9",
     "pytest>=8.3.5",
     "pytest-asyncio>=0.26.0",
     "pytest-cov>=6.1.1",

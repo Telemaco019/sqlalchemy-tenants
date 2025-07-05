@@ -20,7 +20,7 @@ class TestWithRLS:
 
     def test_rls_migrations_generation(
         self,
-        postgres_dsn: str,
+        postgres_dsn_asyncpg: str,
         alembic_versions_dir: Path,
         alembic_upgrade_downgrade: None,
     ) -> None:

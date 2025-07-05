@@ -1,16 +1,12 @@
-from contextlib import asynccontextmanager
-from typing import AsyncGenerator, Set
+from contextlib import contextmanager
+from typing import Generator, Self, Set
 
-from sqlalchemy import text
+from sqlalchemy import Engine, text
 from sqlalchemy.exc import DBAPIError
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
-from typing_extensions import Self
+from sqlalchemy.orm import Session, sessionmaker
 
 from src.sqlalchemy_tenants.core import TENANT_ROLE_PREFIX, get_tenant_role_name
-from src.sqlalchemy_tenants.exceptions import (
-    TenantAlreadyExists,
-    TenantNotFound,
-)
+from src.sqlalchemy_tenants.exceptions import TenantAlreadyExists, TenantNotFound
 from src.sqlalchemy_tenants.utils import pg_quote
 
 
@@ -18,8 +14,8 @@ class PostgresManager:
     def __init__(
         self,
         schema_name: str,
-        engine: AsyncEngine,
-        session_maker: async_sessionmaker[AsyncSession],
+        engine: Engine,
+        session_maker: sessionmaker[Session],
     ) -> None:
         self.engine = engine
         self.schema = schema_name
@@ -28,13 +24,13 @@ class PostgresManager:
     @classmethod
     def from_engine(
         cls,
-        engine: AsyncEngine,
+        engine: Engine,
         schema_name: str,
         expire_on_commit: bool = False,
         autoflush: bool = False,
         autocommit: bool = False,
     ) -> Self:
-        session_maker = async_sessionmaker(
+        session_maker = sessionmaker(
             bind=engine,
             expire_on_commit=expire_on_commit,
             autoflush=autoflush,
@@ -47,76 +43,74 @@ class PostgresManager:
         )
 
     @staticmethod
-    async def _role_exists(sess: AsyncSession, role: str) -> bool:
-        result = await sess.execute(
+    def _role_exists(sess: Session, role: str) -> bool:
+        result = sess.execute(
             text("SELECT 1 FROM pg_roles WHERE rolname = :role").bindparams(role=role)
         )
         return result.scalar() is not None
 
-    async def create_tenant(self, tenant: str) -> None:
-        async with self.new_admin_session() as sess:
+    def create_tenant(self, tenant: str) -> None:
+        with self.new_admin_session() as sess:
             role = get_tenant_role_name(tenant)
             safe_role = pg_quote(role)
             # Check if the role already exists
-            if await self._role_exists(sess, role):
+            if self._role_exists(sess, role):
                 raise TenantAlreadyExists(tenant)
             # Create the tenant role
-            await sess.execute(text(f"CREATE ROLE {safe_role}"))
-            await sess.execute(text(f"GRANT {safe_role} TO {self.engine.url.username}"))
-            await sess.execute(
-                text(f"GRANT USAGE ON SCHEMA {self.schema} TO {safe_role}")
-            )
-            await sess.execute(
+            sess.execute(text(f"CREATE ROLE {safe_role}"))
+            sess.execute(text(f"GRANT {safe_role} TO {self.engine.url.username}"))
+            sess.execute(text(f"GRANT USAGE ON SCHEMA {self.schema} TO {safe_role}"))
+            sess.execute(
                 text(
                     f"GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES "
                     f"IN SCHEMA {self.schema} TO {safe_role};"
                 )
             )
-            await sess.execute(
+            sess.execute(
                 text(
                     f"ALTER DEFAULT PRIVILEGES IN SCHEMA {self.schema} "
                     f"GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO {safe_role};"
                 )
             )
-            await sess.commit()
+            sess.commit()
 
-    async def delete_tenant(self, tenant: str) -> None:
-        async with self.new_admin_session() as sess:
+    def delete_tenant(self, tenant: str) -> None:
+        with self.new_admin_session() as sess:
             role = get_tenant_role_name(tenant)
             safe_role = pg_quote(role)
             # Check if the role exists
-            if not await self._role_exists(sess, role):
+            if not self._role_exists(sess, role):
                 raise TenantNotFound(tenant)
-            await sess.execute(
+            sess.execute(
                 text(f'REASSIGN OWNED BY {safe_role} TO "{self.engine.url.username}"')
             )
-            await sess.execute(text(f"DROP OWNED BY {safe_role}"))
-            await sess.execute(text(f"DROP ROLE {safe_role}"))
-            await sess.commit()
+            sess.execute(text(f"DROP OWNED BY {safe_role}"))
+            sess.execute(text(f"DROP ROLE {safe_role}"))
+            sess.commit()
 
-    async def list_tenants(self) -> Set[str]:
-        async with self.new_admin_session() as sess:
-            result = await sess.execute(
+    def list_tenants(self) -> Set[str]:
+        with self.new_admin_session() as sess:
+            result = sess.execute(
                 text(
                     "SELECT rolname FROM pg_roles WHERE rolname LIKE :prefix"
                 ).bindparams(prefix=f"{TENANT_ROLE_PREFIX}%")
             )
             return {row[0].removeprefix(TENANT_ROLE_PREFIX) for row in result.all()}
 
-    @asynccontextmanager
-    async def new_session(self, tenant: str) -> AsyncGenerator[AsyncSession, None]:
+    @contextmanager
+    def new_session(self, tenant: str) -> Generator[Session, None, None]:
         """Create a new session for the given tenant."""
-        async with self.session_maker() as session:
+        with self.session_maker() as session:
             role = get_tenant_role_name(tenant)
             safe_role = pg_quote(role)
             try:
-                await session.execute(text(f"SET SESSION ROLE {safe_role}"))
+                session.execute(text(f"SET SESSION ROLE {safe_role}"))
             except DBAPIError as e:
                 if e.args and "does not exist" in e.args[0]:
                     raise TenantNotFound(f"Role '{role}' does not exist") from e
             yield session
 
-    @asynccontextmanager
-    async def new_admin_session(self) -> AsyncGenerator[AsyncSession, None]:
-        async with self.session_maker() as session:
+    @contextmanager
+    def new_admin_session(self) -> Generator[Session, None, None]:
+        with self.session_maker() as session:
             yield session
