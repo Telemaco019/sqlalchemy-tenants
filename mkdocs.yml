@@ -1,9 +1,12 @@
-site_name: sqlalchemy-tenants
+site_name: ""
 repo_url: https://github.com/Telemaco019/sqlalchemy-tenants
 repo_name: sqlalchemy-tenants
 
+
 theme:
   name: material
+  favicon: assets/favicon.png
+  logo: assets/logo-white.svg
 
   palette:
     - scheme: default
