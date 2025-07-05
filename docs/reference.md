@@ -15,11 +15,26 @@ The core functionality of sqlalchemy-tenants.
       show_category_heading: false
       show_root_toc_entry: false
 
-## Async 
 
-::: sqlalchemy_tenants.aio.managers
+
+## Managers
+
+::: sqlalchemy_tenants.managers.PostgresManager
     options:
-      show_root_heading: false
+      show_root_heading: true
+      show_source: true
+      heading_level: 3
+      members_order: source
+      show_signature_annotations: true
+      separate_signature: true
+      show_category_heading: false
+      show_root_toc_entry: false
+
+## Managers [async]
+
+::: sqlalchemy_tenants.aio.managers.PostgresManager
+    options:
+      show_root_heading: true
       show_source: true
       heading_level: 3
       members_order: source

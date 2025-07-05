@@ -54,6 +54,12 @@ class PostgresManager:
         return result.scalar() is not None
 
     async def create_tenant(self, tenant: str) -> None:
+        """
+        Create a new tenant with the specified name.
+
+        Args:
+            tenant: The name of the tenant to create.
+        """
         async with self.new_admin_session() as sess:
             role = get_tenant_role_name(tenant)
             safe_role = pg_quote(role)
@@ -81,6 +87,15 @@ class PostgresManager:
             await sess.commit()
 
     async def delete_tenant(self, tenant: str) -> None:
+        """
+        Delete a tenant and all its associated roles and privileges,
+        reassigning owned objects to the current user.
+
+        No data will be deleted, only the role and privileges.
+
+        Args:
+            tenant: The name of the tenant to delete.
+        """
         async with self.new_admin_session() as sess:
             role = get_tenant_role_name(tenant)
             safe_role = pg_quote(role)
@@ -95,6 +110,12 @@ class PostgresManager:
             await sess.commit()
 
     async def list_tenants(self) -> Set[str]:
+        """
+        Get all the available tenants.
+
+        Returns:
+            A set with all the available tenants.
+        """
         async with self.new_admin_session() as sess:
             result = await sess.execute(
                 text(
@@ -105,7 +126,24 @@ class PostgresManager:
 
     @asynccontextmanager
     async def new_session(self, tenant: str) -> AsyncGenerator[AsyncSession, None]:
-        """Create a new session for the given tenant."""
+        """
+        Create a new session scoped to a specific tenant,
+        using the tenant's session role.
+
+        This session is subject to PostgreSQL Row-Level Security (RLS) policies and will
+        only have access to data belonging to the specified tenant.
+
+        Args:
+            tenant: The name of the tenant. This must match a valid PostgreSQL role
+                    associated with the tenant.
+
+        Yields:
+            An asynchronous SQLAlchemy session restricted to the tenant's data via RLS.
+
+        Raises:
+            TenantNotFound: If the corresponding session role does not exist in the
+            database.
+        """
         async with self.session_maker() as session:
             role = get_tenant_role_name(tenant)
             safe_role = pg_quote(role)
@@ -118,5 +156,14 @@ class PostgresManager:
 
     @asynccontextmanager
     async def new_admin_session(self) -> AsyncGenerator[AsyncSession, None]:
+        """
+        Create a new admin session with unrestricted access to all tenant data.
+
+        This session is not bound to any tenant role and is not subject to
+        RLS policies.
+
+        Yields:
+            An asynchronous SQLAlchemy session with full database access.
+        """
         async with self.session_maker() as session:
             yield session
