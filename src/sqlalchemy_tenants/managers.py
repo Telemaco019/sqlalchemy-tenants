@@ -1,9 +1,10 @@
 from contextlib import contextmanager
-from typing import Generator, Self, Set
+from typing import Generator, Set
 
 from sqlalchemy import Engine, text
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session, sessionmaker
+from typing_extensions import Self
 
 from src.sqlalchemy_tenants.core import TENANT_ROLE_PREFIX, get_tenant_role_name
 from src.sqlalchemy_tenants.exceptions import TenantAlreadyExists, TenantNotFound
