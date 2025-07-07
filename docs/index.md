@@ -104,20 +104,19 @@ is planned.
 ## Quickstart
 
 ### 1. Install the library
-Using UV [recommended]:
-```bash
-uv add sqlalchemy-tenants
-```
+=== "UV"
+    ```bash
+    uv add sqlalchemy-tenants
+    ```
+=== "Poetry"
+    ```bash
+    poetry add sqlalchemy-tenants
+    ```
 
-Using Poetry:
-```bash
-poetry add sqlalchemy-tenants
-```
-
-Using pip:
-```bash
-pip install sqlalchemy-tenants
-```
+=== "Pip"
+    ```bash
+    pip install sqlalchemy-tenants
+    ```
 
 ### 2.
 
