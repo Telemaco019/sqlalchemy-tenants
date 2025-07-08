@@ -118,6 +118,54 @@ is planned.
     pip install sqlalchemy-tenants
     ```
 
-### 2.
+### 2. Annotate your models
+Add the `@with_rls` decorator to any model that should be tenant-aware.
 
+It enables multi-tenancy enforcement on that table and allows the session manager to 
+apply tenant scoping automatically.
 
+Your model must include a `tenant` column of type `str`, which contains the 
+tenant identifier (e.g. a slug). 
+If the model doesn’t already have this column, you’ll need to add it.
+
+```py hl_lines="3"
+from sqlalchemy_tenants import with_rls
+
+@with_rls
+class MyTable(Base):
+    __tablename__ = "my_table"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column()
+    tenant: Mapped[str] = mapped_column()  # Required tenant column
+```
+
+### 3. Update your Alembic `env.py`
+
+Include sqlalchemy-tenants in your Alembic `env.py` to automatically generate 
+RLS policies and functions in your migrations.
+
+You can just add the function `get_process_revision_directives` to your
+`context.configure` call:
+
+```py title="env.py" hl_lines="3 9"
+from alembic import context
+from app.db.orm import Base
+from sqlalchemy_tenants import get_process_revision_directives
+
+target_metadata = Base.metadata
+
+context.configure(
+    # ...
+    process_revision_directives=get_process_revision_directives(Base.metadata),
+    # ...
+)
+```
+
+### 4. Generate migrations
+Use Alembic to create the initial migration. This will include the necessary
+RLS policies and functions for your tenant-aware models:
+
+```bash
+alembic revision --autogenerate -m "Add RLS policies"
+```
