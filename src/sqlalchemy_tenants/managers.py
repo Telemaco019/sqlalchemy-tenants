@@ -1,3 +1,4 @@
+import logging
 from contextlib import contextmanager
 from typing import Generator, Set
 
@@ -9,6 +10,8 @@ from typing_extensions import Self
 from src.sqlalchemy_tenants.core import TENANT_ROLE_PREFIX, get_tenant_role_name
 from src.sqlalchemy_tenants.exceptions import TenantAlreadyExists, TenantNotFound
 from src.sqlalchemy_tenants.utils import pg_quote
+
+logger = logging.getLogger(__name__)
 
 
 class PostgresManager:
@@ -57,6 +60,7 @@ class PostgresManager:
         Args:
             tenant: The name of the tenant to create.
         """
+        logger.info("creating tenant %s", tenant)
         with self.new_admin_session() as sess:
             role = get_tenant_role_name(tenant)
             safe_role = pg_quote(role)
@@ -91,6 +95,7 @@ class PostgresManager:
         Args:
             tenant: The name of the tenant to delete.
         """
+        logger.info("deleting tenant %s", tenant)
         with self.new_admin_session() as sess:
             role = get_tenant_role_name(tenant)
             safe_role = pg_quote(role)
@@ -119,8 +124,21 @@ class PostgresManager:
             )
             return {row[0].removeprefix(TENANT_ROLE_PREFIX) for row in result.all()}
 
+    @staticmethod
+    def _maybe_set_session_role(sess: Session, role: str) -> None:
+        safe_role = pg_quote(role)
+        try:
+            sess.execute(text(f"SET SESSION ROLE {safe_role}"))
+        except DBAPIError as e:
+            if e.args and "does not exist" in e.args[0]:
+                raise TenantNotFound(f"Role '{role}' does not exist") from e
+
     @contextmanager
-    def new_session(self, tenant: str) -> Generator[Session, None, None]:
+    def new_session(
+        self,
+        tenant: str,
+        create_if_missing: bool = True,
+    ) -> Generator[Session, None, None]:
         """
         Create a new session scoped to a specific tenant,
         using the tenant's session role.
@@ -130,23 +148,29 @@ class PostgresManager:
 
         Args:
             tenant: The name of the tenant. This must match a valid PostgreSQL role
-                    associated with the tenant.
+                associated with the tenant.
+            create_if_missing: If True, will create the tenant role if it does
+                not exist yet.
 
         Yields:
-            An asynchronous SQLAlchemy session restricted to the tenant's data via RLS.
+            An SQLAlchemy session restricted to the tenant's data via RLS.
 
         Raises:
             TenantNotFound: If the corresponding session role does not exist in the
-            database.
+            database, and `create_if_missing` is False.
         """
         with self.session_maker() as session:
             role = get_tenant_role_name(tenant)
-            safe_role = pg_quote(role)
             try:
-                session.execute(text(f"SET SESSION ROLE {safe_role}"))
-            except DBAPIError as e:
-                if e.args and "does not exist" in e.args[0]:
-                    raise TenantNotFound(f"Role '{role}' does not exist") from e
+                self._maybe_set_session_role(session, role)
+            except TenantNotFound:
+                if create_if_missing:
+                    logger.info("tenant %s does not exist, creating it", tenant)
+                    self.create_tenant(tenant)
+                else:
+                    raise
+            self._maybe_set_session_role(session, role)
+
             yield session
 
     @contextmanager

@@ -84,7 +84,16 @@ class TestTenantSession:
             engine,
             schema_name="public",
         )
-        with pytest.raises(TenantNotFound), manager.new_session(new_tenant()):
+        with pytest.raises(TenantNotFound):  # noqa: SIM117
+            with manager.new_session(tenant=new_tenant(), create_if_missing=False):
+                pass
+
+    def test_tenant_not_found__create_if_missing(self, engine: Engine) -> None:
+        manager = PostgresManager.from_engine(
+            engine,
+            schema_name="public",
+        )
+        with manager.new_session(tenant=new_tenant()):
             pass
 
     def test_success(self, engine: Engine) -> None:

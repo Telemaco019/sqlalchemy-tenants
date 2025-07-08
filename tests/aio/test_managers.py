@@ -86,8 +86,20 @@ class TestTenantSession:
             schema_name="public",
         )
         with pytest.raises(TenantNotFound):
-            async with manager.new_session(new_tenant()):
+            async with manager.new_session(
+                tenant=new_tenant(), create_if_missing=False
+            ):
                 pass
+
+    async def test_tenant_not_found__create_if_missing(
+        self, async_engine: AsyncEngine
+    ) -> None:
+        manager = PostgresManager.from_engine(
+            async_engine,
+            schema_name="public",
+        )
+        async with manager.new_session(tenant=new_tenant()):
+            pass
 
     async def test_success(self, async_engine: AsyncEngine) -> None:
         manager = PostgresManager.from_engine(
