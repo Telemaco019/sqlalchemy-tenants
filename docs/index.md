@@ -163,9 +163,52 @@ context.configure(
 ```
 
 ### 4. Generate migrations
-Use Alembic to create the initial migration. This will include the necessary
+Use Alembic to generate a new migration, which will include the necessary
 RLS policies and functions for your tenant-aware models:
 
 ```bash
 alembic revision --autogenerate -m "Add RLS policies"
 ```
+
+
+### 5. Use the session manager
+
+`sqlalchemy-tenants` provides a built-in session manager to simplify the creation of 
+tenant-scoped sessions.
+
+You can instantiate it from your SQLAlchemy engine, and then use it to create sessions 
+automatically scoped to a specific tenant:
+
+=== "Sync"
+
+    ```python
+    from sqlalchemy import create_engine
+    from sqlalchemy_tenants import with_rls
+    from sqlalchemy_tenants.managers import PostgresManager
+
+    engine = create_engine("postgresql+psycopg://user:password@localhost/dbname")
+    manager = PostgresManager.from_engine(engine, schema="public")
+
+    with manager.new_session("tenant_1") as session:
+        ...
+    ```
+
+=== "Async"
+
+    ```python
+    from sqlalchemy.ext.asyncio import create_async_engine
+    from sqlalchemy_tenants import with_rls
+    from sqlalchemy_tenants.aio.managers import PostgresManager
+
+    engine = create_async_engine("postgresql+psycopg://user:password@localhost/dbname")
+    manager = PostgresManager.from_engine(engine, schema="public")
+
+
+    async def main() -> None:
+        async with manager.new_session("tenant_1") as session:
+            ...
+    ```
+
+### 🔍 Want more? 
+
+Check out the [Examples](./examples) page for more practical use cases.

@@ -140,24 +140,23 @@ class PostgresManager:
         create_if_missing: bool = True,
     ) -> Generator[Session, None, None]:
         """
-        Create a new session scoped to a specific tenant,
-        using the tenant's session role.
+        Create a new SQLAlchemy session scoped to a specific tenant.
 
-        This session is subject to PostgreSQL Row-Level Security (RLS) policies and will
-        only have access to data belonging to the specified tenant.
+        The session uses the tenant's PostgreSQL role and is subject to Row-Level
+        Security (RLS) policies. All queries and writes are automatically restricted
+        to data belonging to the specified tenant.
 
         Args:
-            tenant: The name of the tenant. This must match a valid PostgreSQL role
-                associated with the tenant.
-            create_if_missing: If True, will create the tenant role if it does
-                not exist yet.
+            tenant: The tenant identifier, which must match a valid PostgreSQL role
+                used for RLS enforcement.
+            create_if_missing: Whether to create the tenant role if it doesn't exist.
 
         Yields:
-            An SQLAlchemy session restricted to the tenant's data via RLS.
+            A SQLAlchemy session restricted to the tenant's data via RLS.
 
         Raises:
-            TenantNotFound: If the corresponding session role does not exist in the
-            database, and `create_if_missing` is False.
+            TenantNotFound: If the tenant role doesn't exist and `create_if_missing`
+                is False.
         """
         with self.session_maker() as session:
             role = get_tenant_role_name(tenant)
