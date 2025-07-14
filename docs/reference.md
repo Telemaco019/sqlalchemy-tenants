@@ -18,6 +18,16 @@ The core functionality of sqlalchemy-tenants.
 
 
 ## Managers
+::: sqlalchemy_tenants.managers.DBManager
+    options:
+        show_root_heading: true
+        show_source: true
+        heading_level: 3
+        members_order: source
+        show_signature_annotations: true
+        separate_signature: true
+        show_category_heading: false
+        show_root_toc_entry: false
 
 ::: sqlalchemy_tenants.managers.PostgresManager
     options:
@@ -31,6 +41,17 @@ The core functionality of sqlalchemy-tenants.
       show_root_toc_entry: false
 
 ## Managers [async]
+
+::: sqlalchemy_tenants.aio.managers.DBManager
+    options:
+        show_root_heading: true
+        show_source: true
+        heading_level: 3
+        members_order: source
+        show_signature_annotations: true
+        separate_signature: true
+        show_category_heading: false
+        show_root_toc_entry: false
 
 ::: sqlalchemy_tenants.aio.managers.PostgresManager
     options:

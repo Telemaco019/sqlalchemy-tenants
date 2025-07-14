@@ -1,6 +1,7 @@
 import logging
+from abc import abstractmethod
 from contextlib import contextmanager
-from typing import Generator, Set
+from typing import ContextManager, Generator, Set
 
 from sqlalchemy import Engine, text
 from sqlalchemy.exc import DBAPIError
@@ -12,6 +13,76 @@ from src.sqlalchemy_tenants.exceptions import TenantAlreadyExists, TenantNotFoun
 from src.sqlalchemy_tenants.utils import pg_quote
 
 logger = logging.getLogger(__name__)
+
+
+class DBManager:
+    @abstractmethod
+    def create_tenant(self, tenant: str) -> None:
+        """
+        Create a new tenant with the specified name.
+
+        Args:
+            tenant: The name of the tenant to create.
+        """
+
+    @abstractmethod
+    def delete_tenant(self, tenant: str) -> None:
+        """
+        Delete a tenant and all its associated roles and privileges,
+        reassigning owned objects to the current user.
+
+        No data will be deleted, only the role and privileges.
+
+        Args:
+            tenant: The name of the tenant to delete.
+        """
+
+    @abstractmethod
+    def list_tenants(self) -> Set[str]:
+        """
+        Get all the available tenants.
+
+        Returns:
+            A set with all the available tenants.
+        """
+
+    @abstractmethod
+    def new_session(
+        self,
+        tenant: str,
+        create_if_missing: bool = True,
+    ) -> ContextManager[Session]:
+        """
+        Create a new SQLAlchemy session scoped to a specific tenant.
+
+        The session uses the tenant's PostgreSQL role and is subject to Row-Level
+        Security (RLS) policies. All queries and writes are automatically restricted
+        to data belonging to the specified tenant.
+
+        Args:
+            tenant: The tenant identifier, which must match a valid PostgreSQL role
+                used for RLS enforcement.
+            create_if_missing: Whether to create the tenant role if it doesn't exist.
+
+        Yields:
+            A SQLAlchemy session restricted to the tenant's data via RLS.
+
+        Raises:
+            TenantNotFound: If the tenant role doesn't exist and `create_if_missing`
+                is False.
+        """
+
+    @abstractmethod
+    def new_admin_session(self) -> ContextManager[Session]:
+        """
+        Create a new admin session with unrestricted access to all tenant data.
+
+        This session is not bound to any tenant role and is not subject to
+        RLS policies.
+
+        Yields:
+            An asynchronous SQLAlchemy session with full database access.
+        """
 
 
 class PostgresManager:
@@ -54,12 +125,6 @@ class PostgresManager:
         return result.scalar() is not None
 
     def create_tenant(self, tenant: str) -> None:
-        """
-        Create a new tenant with the specified name.
-
-        Args:
-            tenant: The name of the tenant to create.
-        """
         logger.info("creating tenant %s", tenant)
         with self.new_admin_session() as sess:
             role = get_tenant_role_name(tenant)
@@ -86,15 +151,6 @@ class PostgresManager:
             sess.commit()
 
     def delete_tenant(self, tenant: str) -> None:
-        """
-        Delete a tenant and all its associated roles and privileges,
-        reassigning owned objects to the current user.
-
-        No data will be deleted, only the role and privileges.
-
-        Args:
-            tenant: The name of the tenant to delete.
-        """
         logger.info("deleting tenant %s", tenant)
         with self.new_admin_session() as sess:
             role = get_tenant_role_name(tenant)
@@ -110,12 +166,6 @@ class PostgresManager:
             sess.commit()
 
     def list_tenants(self) -> Set[str]:
-        """
-        Get all the available tenants.
-
-        Returns:
-            A set with all the available tenants.
-        """
         with self.new_admin_session() as sess:
             result = sess.execute(
                 text(
@@ -139,25 +189,6 @@ class PostgresManager:
         tenant: str,
         create_if_missing: bool = True,
     ) -> Generator[Session, None, None]:
-        """
-        Create a new SQLAlchemy session scoped to a specific tenant.
-
-        The session uses the tenant's PostgreSQL role and is subject to Row-Level
-        Security (RLS) policies. All queries and writes are automatically restricted
-        to data belonging to the specified tenant.
-
-        Args:
-            tenant: The tenant identifier, which must match a valid PostgreSQL role
-                used for RLS enforcement.
-            create_if_missing: Whether to create the tenant role if it doesn't exist.
-
-        Yields:
-            A SQLAlchemy session restricted to the tenant's data via RLS.
-
-        Raises:
-            TenantNotFound: If the tenant role doesn't exist and `create_if_missing`
-                is False.
-        """
         with self.session_maker() as session:
             role = get_tenant_role_name(tenant)
             try:
@@ -174,14 +205,5 @@ class PostgresManager:
 
     @contextmanager
     def new_admin_session(self) -> Generator[Session, None, None]:
-        """
-        Create a new admin session with unrestricted access to all tenant data.
-
-        This session is not bound to any tenant role and is not subject to
-        RLS policies.
-
-        Yields:
-            An asynchronous SQLAlchemy session with full database access.
-        """
         with self.session_maker() as session:
             yield session

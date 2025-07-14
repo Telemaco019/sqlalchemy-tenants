@@ -1,11 +1,12 @@
 import logging
+from abc import abstractmethod
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator, Set
+from typing import AsyncContextManager, AsyncGenerator, Protocol, Set
 
 from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
-from typing_extensions import Self
+from typing_extensions import Self, runtime_checkable
 
 from src.sqlalchemy_tenants.core import TENANT_ROLE_PREFIX, get_tenant_role_name
 from src.sqlalchemy_tenants.exceptions import (
@@ -17,7 +18,78 @@ from src.sqlalchemy_tenants.utils import pg_quote
 logger = logging.getLogger(__name__)
 
 
-class PostgresManager:
+@runtime_checkable
+class DBManager(Protocol):
+    @abstractmethod
+    async def create_tenant(self, tenant: str) -> None:
+        """
+        Create a new tenant with the specified name.
+
+        Args:
+            tenant: The name of the tenant to create.
+        """
+
+    @abstractmethod
+    async def delete_tenant(self, tenant: str) -> None:
+        """
+        Delete a tenant and all its associated roles and privileges,
+        reassigning owned objects to the current user.
+
+        No data will be deleted, only the role and privileges.
+
+        Args:
+            tenant: The name of the tenant to delete.
+        """
+
+    @abstractmethod
+    async def list_tenants(self) -> Set[str]:
+        """
+        Get all the available tenants.
+
+        Returns:
+            A set with all the available tenants.
+        """
+
+    @abstractmethod
+    def new_session(
+        self,
+        tenant: str,
+        create_if_missing: bool = True,
+    ) -> AsyncContextManager[AsyncSession]:
+        """
+        Create a new SQLAlchemy session scoped to a specific tenant.
+
+        The session uses the tenant's PostgreSQL role and is subject to Row-Level
+        Security (RLS) policies. All queries and writes are automatically restricted
+        to data belonging to the specified tenant.
+
+        Args:
+            tenant: The tenant identifier, which must match a valid PostgreSQL role
+                used for RLS enforcement.
+            create_if_missing: Whether to create the tenant role if it doesn't exist.
+
+        Yields:
+            A SQLAlchemy session restricted to the tenant's data via RLS.
+
+        Raises:
+            TenantNotFound: If the tenant role doesn't exist and `create_if_missing`
+                is False.
+        """
+
+    @abstractmethod
+    def new_admin_session(self) -> AsyncContextManager[AsyncSession]:
+        """
+        Create a new admin session with unrestricted access to all tenant data.
+
+        This session is not bound to any tenant role and is not subject to
+        RLS policies.
+
+        Yields:
+            An asynchronous SQLAlchemy session with full database access.
+        """
+
+
+class PostgresManager(DBManager):
     def __init__(
         self,
         schema_name: str,
@@ -57,12 +129,6 @@ class PostgresManager:
         return result.scalar() is not None
 
     async def create_tenant(self, tenant: str) -> None:
-        """
-        Create a new tenant with the specified name.
-
-        Args:
-            tenant: The name of the tenant to create.
-        """
         logger.info("creating tenant %s", tenant)
         async with self.new_admin_session() as sess:
             role = get_tenant_role_name(tenant)
@@ -91,15 +157,6 @@ class PostgresManager:
             await sess.commit()
 
     async def delete_tenant(self, tenant: str) -> None:
-        """
-        Delete a tenant and all its associated roles and privileges,
-        reassigning owned objects to the current user.
-
-        No data will be deleted, only the role and privileges.
-
-        Args:
-            tenant: The name of the tenant to delete.
-        """
         logger.info("deleting tenant %s", tenant)
         async with self.new_admin_session() as sess:
             role = get_tenant_role_name(tenant)
@@ -115,12 +172,6 @@ class PostgresManager:
             await sess.commit()
 
     async def list_tenants(self) -> Set[str]:
-        """
-        Get all the available tenants.
-
-        Returns:
-            A set with all the available tenants.
-        """
         async with self.new_admin_session() as sess:
             result = await sess.execute(
                 text(
@@ -144,25 +195,6 @@ class PostgresManager:
         tenant: str,
         create_if_missing: bool = True,
     ) -> AsyncGenerator[AsyncSession, None]:
-        """
-        Create a new SQLAlchemy session scoped to a specific tenant.
-
-        The session uses the tenant's PostgreSQL role and is subject to Row-Level
-        Security (RLS) policies. All queries and writes are automatically restricted
-        to data belonging to the specified tenant.
-
-        Args:
-            tenant: The tenant identifier, which must match a valid PostgreSQL role
-                used for RLS enforcement.
-            create_if_missing: Whether to create the tenant role if it doesn't exist.
-
-        Yields:
-            A SQLAlchemy session restricted to the tenant's data via RLS.
-
-        Raises:
-            TenantNotFound: If the tenant role doesn't exist and `create_if_missing`
-                is False.
-        """
         async with self.session_maker() as session:
             role = get_tenant_role_name(tenant)
             try:
@@ -179,14 +211,5 @@ class PostgresManager:
 
     @asynccontextmanager
     async def new_admin_session(self) -> AsyncGenerator[AsyncSession, None]:
-        """
-        Create a new admin session with unrestricted access to all tenant data.
-
-        This session is not bound to any tenant role and is not subject to
-        RLS policies.
-
-        Yields:
-            An asynchronous SQLAlchemy session with full database access.
-        """
         async with self.session_maker() as session:
             yield session

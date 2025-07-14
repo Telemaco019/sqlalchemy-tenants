@@ -2,7 +2,6 @@ site_name: ""
 repo_url: https://github.com/Telemaco019/sqlalchemy-tenants
 repo_name: sqlalchemy-tenants
 
-
 theme:
   name: material
   favicon: assets/favicon.png
@@ -53,4 +52,22 @@ markdown_extensions:
           case: lower
 plugins:
   - search
-  - mkdocstrings
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google # or "numpy"
+            inherited_members: true # include inherited methods
+            show_submodules: true
+            merge_init_into_class: true
+            docstring_options:
+            inherit: true # <- This tells it to inherit docstrings
+  - autorefs
+
+nav:
+  - Overview: overview.md
+  - Managing tenants: tenants.md
+  - Reference: reference.md
+  - Examples:
+      - Overview: examples/basic.md
+      - FastAPI Integration: examples/fastapi-integration.md
