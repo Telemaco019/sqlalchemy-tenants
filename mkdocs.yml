@@ -65,7 +65,7 @@ plugins:
   - autorefs
 
 nav:
-  - Overview: overview.md
+  - Overview: index.md
   - Managing tenants: tenants.md
   - Reference: reference.md
   - Examples:

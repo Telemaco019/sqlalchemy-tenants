@@ -46,3 +46,19 @@ time a session is opened for a tenant.
 
 !!! warning
     Expect a short delay the first time a session is created if the tenant hasn’t been set up manually.
+
+## Deleting tenants
+
+Use [`DBManager.delete_tenant()`][sqlalchemy_tenants.managers.DBManager.delete_tenant]
+to remove a tenant’s database role and RLS policies. This can be useful when a tenant is decommissioned or no longer needs isolated access.
+
+**Example**:
+
+```python
+manager.delete_tenant("my_tenant")
+```
+
+!!! warning
+    Deleting a tenant does not delete its data from your tables.
+    You'll need to explicitly remove tenant data from your application-level 
+    storage (e.g., via `#!sql DELETE FROM table WHERE tenant = 'my_tenant'`) if that’s required.
