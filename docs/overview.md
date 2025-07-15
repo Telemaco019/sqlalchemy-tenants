@@ -170,8 +170,52 @@ RLS policies and functions for your tenant-aware models:
 alembic revision --autogenerate -m "Add RLS policies"
 ```
 
+### 5. Create a DBManager
 
-### 5. Use the session manager
+`sqlalchemy-tenants` provides a `DBManager` to simplify the creation of tenant-scoped sessions.
+
+Instantiate it from your SQLAlchemy engine and specify the schema where 
+your tenant-aware tables live. The manager will automatically scope all operations 
+(like RLS enforcement) to that schema.
+
+=== "Sync"
+
+    ```python
+    from sqlalchemy import create_engine
+    from sqlalchemy_tenants.managers import PostgresManager
+
+    engine = create_engine("postgresql+psycopg://user:password@localhost/dbname")
+    manager = PostgresManager.from_engine(
+        engine,
+        schema="public", # (1)
+    )
+    ```
+
+    1. The schema where your tenant-aware tables are located.
+    All sessions and RLS checks will be scoped to this schema.
+
+
+=== "Async"
+
+    ```python
+
+    from sqlalchemy.ext.asyncio import create_async_engine
+    from sqlalchemy_tenants.aio.managers import PostgresManager
+
+    engine = create_async_engine("postgresql+asyncpg://user:password@localhost/dbname")
+    manager = PostgresManager.from_engine(
+        engine, 
+        schema="public" # (1) 
+    )
+    ```
+
+    1. The schema where your tenant-aware tables are located. 
+    All sessions and RLS checks will be scoped to this schema.
+
+!!! note
+    If you're working with multiple schemas, create a separate DBManager for each one.    
+
+### 6. Use the DBManager 
 
 `sqlalchemy-tenants` provides a built-in session manager to simplify the creation of 
 tenant-scoped sessions.
@@ -182,32 +226,20 @@ automatically scoped to a specific tenant:
 === "Sync"
 
     ```python
-    from sqlalchemy import create_engine
-    from sqlalchemy_tenants import with_rls
-    from sqlalchemy_tenants.managers import PostgresManager
-
-    engine = create_engine("postgresql+psycopg://user:password@localhost/dbname")
-    manager = PostgresManager.from_engine(engine, schema="public")
-
     with manager.new_session("tenant_1") as session:
-        ...
+        # ✅ Only returns tenant_1’s rows, even if you forget to filter by tenant
+        session.execute(select(MyTable))
     ```
 
 === "Async"
 
     ```python
-    from sqlalchemy.ext.asyncio import create_async_engine
-    from sqlalchemy_tenants import with_rls
-    from sqlalchemy_tenants.aio.managers import PostgresManager
-
-    engine = create_async_engine("postgresql+psycopg://user:password@localhost/dbname")
-    manager = PostgresManager.from_engine(engine, schema="public")
-
-
     async def main() -> None:
         async with manager.new_session("tenant_1") as session:
-            ...
+            # ✅ Only returns tenant_1’s rows, even if you forget to filter by tenant
+            await session.execute(select(MyTable))
     ```
+
 
 ### 🔍 Want more? 
 
