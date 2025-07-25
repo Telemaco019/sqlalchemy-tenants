@@ -70,4 +70,4 @@ nav:
   - Reference: reference.md
   - Examples:
       - Overview: examples/basic.md
-      - FastAPI Integration: examples/fastapi-integration.md
+      - FastAPI Integration: examples/fastapi-integration
