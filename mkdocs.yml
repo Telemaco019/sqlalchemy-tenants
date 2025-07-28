@@ -69,5 +69,4 @@ nav:
   - Managing tenants: tenants.md
   - Reference: reference.md
   - Examples:
-      - Overview: examples/basic.md
       - FastAPI Integration: examples/fastapi-integration

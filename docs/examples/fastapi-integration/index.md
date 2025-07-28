@@ -1,24 +1,32 @@
 # FastAPI Integration
 
-This example shows how to use sqlalchemy-tenants to build a multi-tenant [FastAPI](https://fastapi.tiangolo.com/)
+## Overview
+
+This example shows how to use sqlalchemy-tenants to build a
+multi-tenant [FastAPI](https://fastapi.tiangolo.com/)
 service where each request is automatically scoped to the correct tenant.
 
-This enforces tenant isolation at the database level, so even if you forget to filter by tenant in your queries,
+This enforces tenant isolation at the database level, so even if you forget to filter by
+tenant in your queries,
 there's no risk of data leaking between tenants.
 
-We'll use PostgreSQL for this example. We assume you already have ORM models defined using SQLAlchemy. In this case,
+We'll use PostgreSQL for this example. We assume you already have ORM models defined
+using SQLAlchemy. In this case,
 we'll use a simple `TodoItem` model.
 
 !!! info
-    You can find the full source code for this example in the [examples/fastapi_tenants]().
+You can find the full source code for this example in the [examples/fastapi_tenants]().
 
+## Steps
 
-# 1. Enable multi-tenancy on your models
+### 1. Enable multi-tenancy on your models
 
-Let's enable multi-tenancy by adding a `tenant` column to our model and applying the `@with_rls` decorator.
+Let's enable multi-tenancy by adding a `tenant` column to our model and applying the
+`@with_rls` decorator.
 
-```py title="models.py" hl_lines="3 9"
+```py title="orm.py" hl_lines="3 9"
 from sqlalchemy_tenants import with_rls
+
 
 @with_rls
 class TodoItem(Base):
@@ -29,19 +37,23 @@ class TodoItem(Base):
     tenant: Mapped[str] = mapped_column()  
 ```
 
-# 2. Generate the alembic migration
+### 2. Generate the alembic migration
 
-Generate alembic migrations to add the `tenant` column and enable row-level security (RLS) on the table.
+Generate alembic migrations to add the `tenant` column and enable row-level security (
+RLS) on the table.
 
 ```bash
 alembic revision --autogenerate -m "Add tenant column and enable RLS"
 ```
 
-# 3. Instantiate a DBManager
+### 3. Instantiate a DBManager
 
-We need a `DBManager` to manage tenant sessions and enforce RLS policies. To create it, we 
-need first to create a sqlalchemy engine. We'll using the async version of the manager with 
-[asyncpg](). We'll read the database connection settings from environment variables using [Pydantic]().
+We need a `DBManager` to manage tenant sessions and enforce RLS policies. To create it,
+we
+need first to create a sqlalchemy engine. We'll using the async version of the manager
+with
+[asyncpg](). We'll read the database connection settings from environment variables
+using [Pydantic]().
 
 ```py title="engine.py" hl_lines="34"
 class PostgresSettings(BaseSettings):
@@ -80,3 +92,101 @@ engine = create_async_engine(str(settings.get_dsn()))
 manager = PostgresManager.from_engine(engine, schema_name="public")
 ```
 
+### 4. Create a FastAPI dependency to extract the tenant
+
+We’ll define a FastAPI dependency that extracts the tenant ID from the incoming request.
+
+In this example, we assume requests are authenticated using a JWT access token,
+and that the tenant identifier is stored in the `tenant` claim.
+
+!!! warning
+    This is a simplified example and skips actual JWT verification.
+
+```py title="dependencies.py"
+import logging
+from typing import Annotated
+
+import jose
+from fastapi import Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import jwt
+from starlette.status import HTTP_401_UNAUTHORIZED
+
+logger = logging.getLogger(__name__)
+
+
+def _extract_tenant(
+    credential: Annotated[
+        HTTPAuthorizationCredentials | None,
+        Depends(HTTPBearer(auto_error=False)),
+    ],
+) -> str:
+    if credential is None:
+        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED)
+    try:
+        access_token = jwt.decode(
+            credential.credentials,
+            key="",
+            audience="example",
+            subject="example",
+            algorithms=["HS256"],
+            options={
+                "verify_signature": False,
+                "verify_aud": False,
+                "verify_sub": False,
+            },
+        )
+        return access_token["tenant"]
+    except jose.exceptions.JWTError as e:
+        logger.debug("token decode error", exc_info=e)
+        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED)
+    except KeyError:
+        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED)
+
+
+Tenant_T = Annotated[str, Depends(_extract_tenant)]
+```
+
+We can now use `Tenant_T` as a dependency to extract the tenant from each request.
+
+### 5. Create a dependency for a tenant-scoped DB session
+
+Now we’ll define a FastAPI dependency that returns a SQLAlchemy AsyncSession scoped to
+the current tenant.
+
+This uses the `PostgresManager` instance created earlier to generate a session that
+enforces the correct RLS policies for the tenant extracted in step 4.
+
+```py title="dependencies.py" 
+def _new_db_session(
+    tenant: Tenant_T,
+) -> Annotated[AsyncSession, Depends(new_session)]:
+    return manager.new_session(tenant=tenant)
+
+
+Database_T = Annotated[Database_T, Depends(_new_db_session)]
+```
+
+### 6. Use the tenant-scoped session in your FastAPI routes
+
+You can now use the `Database_T` dependency in your routes to automatically scope all
+database operations to the current tenant, enforced by Postgres row-level security.
+
+```py title="main.py"
+from fastapi import APIRouter
+from sqlalchemy import select
+from app.dependencies import Database_T
+from app.orm import TodoItem
+
+router = APIRouter()
+
+
+@router.get("/todos")
+async def list_todos(db: Database_T) -> list[TodoItem]:
+    result = await db.execute(select(TodoItem))  # (1)
+    return result.scalars().all()
+```
+
+1. While RLS enforces tenant isolation at the database level, it’s still recommended
+to explicitly filter by tenant in your queries. This allows Postgres to optimize
+the query plan and significantly improves performance — especially on large tables.
