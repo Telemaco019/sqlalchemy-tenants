@@ -38,6 +38,6 @@ class PostgresSettings(BaseSettings):
         )
 
 
-settings = PostgresSettings()  # type: ignore[call-arg]
+settings = PostgresSettings()
 engine = create_async_engine(str(settings.get_dsn()))
 manager = PostgresManager.from_engine(engine, schema_name="public")
