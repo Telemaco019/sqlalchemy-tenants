@@ -179,7 +179,7 @@ async with manager.new_session("tenant_1") as session:
 ---
 
 **🔍 Want more?**
-Check out the [examples](./examples/overview.md) for additional use cases.
+Check out the [examples](./docs/examples) for additional use cases.
 
 ## License
 

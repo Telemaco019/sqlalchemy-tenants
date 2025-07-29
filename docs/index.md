@@ -243,4 +243,4 @@ automatically scoped to a specific tenant:
 
 ### 🔍 Want more? 
 
-Check out the [Examples](./examples/overview.md) page for more practical use cases.
+Check out the [Examples](./examples) page for more practical use cases.
