@@ -1,6 +1,6 @@
 from typing import Sequence
 
-from fastapi import APIRouter, FastAPI
+from fastapi import FastAPI
 from sqlalchemy import select
 
 from app.dependencies import Database_T

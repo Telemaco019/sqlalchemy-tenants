@@ -81,6 +81,7 @@ def do_run_migrations(connection: Connection) -> None:
     with context.begin_transaction():
         context.run_migrations()
 
+
 if context.is_offline_mode():
     run_migrations_offline()
 else:
