@@ -19,7 +19,7 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-sqlalchemy-tenants = { path = "../../../" }
+sqlalchemy-tenants = { path = "../../../" , editable = true }
 
 [tool.mypy]
 strict = true
