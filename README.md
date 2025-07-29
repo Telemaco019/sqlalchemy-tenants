@@ -126,7 +126,6 @@ If the model doesn’t already have this column, you’ll need to add it.
 ```python
 from sqlalchemy_tenants import with_rls
 
-
 @with_rls
 class MyTable(Base):
     __tablename__ = "my_table"
@@ -142,7 +141,7 @@ Include sqlalchemy-tenants in your Alembic `env.py` to automatically generate
 RLS policies and functions in your migrations.
 
 You can just add the function `get_process_revision_directives` to your
-`context.configure` call:
+`context.configure` call in your alembic `env.py`:
 
 ```python
 from alembic import context
@@ -197,6 +196,7 @@ with manager.new_session("tenant_1") as session:
     session.execute(select(MyTable))
 ```
 
+Or async:
 ```python
 async with manager.new_session("tenant_1") as session:
     await session.execute(select(MyTable))
