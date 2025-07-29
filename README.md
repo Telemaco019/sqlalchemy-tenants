@@ -44,7 +44,6 @@ from sqlalchemy import create_engine, select, insert
 engine = create_engine("postgresql+psycopg://user:password@localhost/dbname")
 manager = PostgresManager.from_engine(engine, schema="public")
 
-
 @with_rls
 class MyTable(Base):
     __tablename__ = "my_table"
@@ -52,8 +51,7 @@ class MyTable(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column()
     tenant: Mapped[str] = mapped_column()  # Required tenant column
-
-
+    
 with manager.new_session("tenant_1") as session:
     session.execute(select(MyTable))  # ✅ Only returns tenant_1's rows
     session.execute(  # ❌ Raises error – mismatched tenant
@@ -72,7 +70,6 @@ from sqlalchemy import select, insert
 engine = create_async_engine("postgresql+asyncpg://user:password@localhost/dbname")
 manager = PostgresManager.from_engine(engine, schema="public")
 
-
 @with_rls
 class MyTable(Base):
     __tablename__ = "my_table"
@@ -80,8 +77,7 @@ class MyTable(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column()
     tenant: Mapped[str] = mapped_column()  # Required tenant column
-
-
+    
 async with manager.new_session("tenant_1") as session:
     await session.execute(select(MyTable))  # ✅ Only returns tenant_1’s rows
     await session.execute(  # ❌ Raises error – mismatched tenant
