@@ -15,7 +15,8 @@ using SQLAlchemy. In this case,
 we'll use a simple `TodoItem` model.
 
 !!! info
-You can find the full source code for this example in the [examples/fastapi_tenants]().
+    You can find the full source code for this example in 
+    [examples/fastapi_tenants](https://github.com/Telemaco019/sqlalchemy-tenants/tree/main/docs/examples/fastapi-integration).
 
 ## Steps
 
