@@ -1,14 +1,14 @@
-<p style="text-align: center;">
+<p align="center">
   <a href="https://github.com/Telemaco019/sqlalchemy-tenants">
     <img src="assets/logo.svg" alt="sqlalchemy-tenants" height="150">
   </a>
 </p>
 
-<p style="text-align: center;">
+<p align="center">
   <em>Multi-tenancy with SQLAlchemy made easy.</em>
 </p>
 
-<p style="text-align: center;">
+<p align="center">
   <a href="https://github.com/Telemaco019/sqlalchemy-tenants/actions?query=workflow%3ATest+event%3Apush+branch%3Amain">
     <img src="https://github.com/Telemaco019/sqlalchemy-tenants/actions/workflows/test.yml/badge.svg?event=push&branch=main" alt="Test">
   </a>
@@ -27,10 +27,7 @@
 
 ## Overview
 
-**`sqlalchemy-tenants`** makes it easy and safe to implement multi-tenancy in your
-application using [SQLAlchemy](https://www.sqlalchemy.org/). It enables secure, shared
-use of a single PostgreSQL database across multiple tenants
-using [Row-Level Security (RLS)](https://www.postgresql.org/docs/current/ddl-rowsecurity.html).
+**`sqlalchemy-tenants`** makes it easy and safe to implement multi-tenancy in your application using [SQLAlchemy](https://www.sqlalchemy.org/). It enables secure, shared use of a single PostgreSQL database across multiple tenants using [Row-Level Security (RLS)](https://www.postgresql.org/docs/current/ddl-rowsecurity.html).
 
 ## Example Usage
 
@@ -44,7 +41,6 @@ from sqlalchemy import create_engine, select, insert
 engine = create_engine("postgresql+psycopg://user:password@localhost/dbname")
 manager = PostgresManager.from_engine(engine, schema="public")
 
-
 @with_rls
 class MyTable(Base):
     __tablename__ = "my_table"
@@ -52,7 +48,6 @@ class MyTable(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column()
     tenant: Mapped[str] = mapped_column()  # Required tenant column
-
 
 with manager.new_session("tenant_1") as session:
     session.execute(select(MyTable))  # ✅ Only returns tenant_1's rows
@@ -72,7 +67,6 @@ from sqlalchemy import select, insert
 engine = create_async_engine("postgresql+asyncpg://user:password@localhost/dbname")
 manager = PostgresManager.from_engine(engine, schema="public")
 
-
 @with_rls
 class MyTable(Base):
     __tablename__ = "my_table"
@@ -80,7 +74,6 @@ class MyTable(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column()
     tenant: Mapped[str] = mapped_column()  # Required tenant column
-
 
 async with manager.new_session("tenant_1") as session:
     await session.execute(select(MyTable))  # ✅ Only returns tenant_1’s rows
@@ -91,8 +84,7 @@ async with manager.new_session("tenant_1") as session:
 
 ## Key Features
 
-- 🔒 **Strong Data Segregation via RLS**: Automatic query and write scoping using
-  PostgreSQL's Row-Level Security.
+- 🔒 **Strong Data Segregation via RLS**: Automatic query and write scoping using PostgreSQL's Row-Level Security.
 - ⚙️ **Straightforward Integration**: Just a decorator and a session manager.
 - 📦 **Full SQLAlchemy support**: Compatible with both sync and async workflows.
 
@@ -116,7 +108,6 @@ uv add sqlalchemy-tenants
 
 ```python
 from sqlalchemy_tenants import with_rls
-
 
 @with_rls
 class MyTable(Base):
@@ -178,5 +169,5 @@ async with manager.new_session("tenant_1") as session:
 
 ---
 
-**🔍 Want more?** Check out the [examples](./examples/overview.md) for additional use
-cases.
+**🔍 Want more?** 
+Check out the [examples](./examples/overview.md) for additional use cases.
