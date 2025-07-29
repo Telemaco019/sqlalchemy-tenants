@@ -38,7 +38,29 @@ class TodoItem(Base):
     tenant: Mapped[str] = mapped_column()  
 ```
 
-### 2. Generate the alembic migration
+### 2. Update Alembic `env.py`
+
+Include sqlalchemy-tenants in your Alembic `env.py` to automatically generate
+RLS policies and functions in your migrations.
+
+You can just add the function `get_process_revision_directives` to your
+`context.configure` call in your alembic `env.py`:
+
+```python title="env.py" hl_lines="3 9"
+from alembic import context
+from app.db.orm import Base
+from sqlalchemy_tenants import get_process_revision_directives
+
+target_metadata = Base.metadata
+
+context.configure(
+    # ...
+    process_revision_directives=get_process_revision_directives(target_metadata),
+    # ...
+)
+```
+
+### 3. Generate the alembic migration
 
 Generate alembic migrations to add the `tenant` column and enable row-level security (
 RLS) on the table.
@@ -47,7 +69,7 @@ RLS) on the table.
 alembic revision --autogenerate -m "Add tenant column and enable RLS"
 ```
 
-### 3. Instantiate a DBManager
+### 4. Instantiate a DBManager
 
 We need a `DBManager` to manage tenant sessions and enforce RLS policies. To create it,
 we
@@ -93,7 +115,7 @@ engine = create_async_engine(str(settings.get_dsn()))
 manager = PostgresManager.from_engine(engine, schema_name="public")
 ```
 
-### 4. Create a FastAPI dependency to extract the tenant
+### 5. Create a FastAPI dependency to extract the tenant
 
 We’ll define a FastAPI dependency that extracts the tenant ID from the incoming request.
 
@@ -150,7 +172,7 @@ Tenant_T = Annotated[str, Depends(_extract_tenant)]
 
 We can now use `Tenant_T` as a dependency to extract the tenant from each request.
 
-### 5. Create a dependency for a tenant-scoped DB session
+### 6. Create a dependency for a tenant-scoped DB session
 
 Now we’ll define a FastAPI dependency that returns a SQLAlchemy AsyncSession scoped to
 the current tenant.
@@ -169,7 +191,7 @@ async def _new_db_session(
 Database_T = Annotated[AsyncSession, Depends(_new_db_session)]
 ```
 
-### 6. Use the tenant-scoped session in your FastAPI routes
+### 7. Use the tenant-scoped session in your FastAPI routes
 
 You can now use the `Database_T` dependency in your routes to automatically scope all
 database operations to the current tenant, enforced by Postgres row-level security.
