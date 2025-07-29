@@ -157,7 +157,7 @@ target_metadata = Base.metadata
 
 context.configure(
     # ...
-    process_revision_directives=get_process_revision_directives(Base.metadata),
+    process_revision_directives=get_process_revision_directives(target_metadata),
     # ...
 )
 ```

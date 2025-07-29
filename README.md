@@ -114,6 +114,15 @@ uv add sqlalchemy-tenants
 
 ### 2. Annotate Your Models
 
+Add the `@with_rls` decorator to any model that should be tenant-aware.
+
+It enables multi-tenancy enforcement on that table and allows the session manager to
+apply tenant scoping automatically.
+
+Your model must include a `tenant` column of type `str`, which contains the
+tenant identifier (e.g. a slug).
+If the model doesn’t already have this column, you’ll need to add it.
+
 ```python
 from sqlalchemy_tenants import with_rls
 
@@ -129,11 +138,22 @@ class MyTable(Base):
 
 ### 3. Update Alembic `env.py`
 
+Include sqlalchemy-tenants in your Alembic `env.py` to automatically generate
+RLS policies and functions in your migrations.
+
+You can just add the function `get_process_revision_directives` to your
+`context.configure` call:
+
 ```python
+from alembic import context
+from app.db.orm import Base
 from sqlalchemy_tenants import get_process_revision_directives
 
+target_metadata = Base.metadata
+
 context.configure(
-    process_revision_directives=get_process_revision_directives(Base.metadata),
+    # ...
+    process_revision_directives=get_process_revision_directives(target_metadata),
     # ...
 )
 ```
@@ -165,6 +185,12 @@ manager = PostgresManager.from_engine(engine, schema="public")
 ```
 
 ### 6. Use the DBManager
+
+`sqlalchemy-tenants` provides a built-in session manager to simplify the creation of 
+tenant-scoped sessions.
+
+You can instantiate it from your SQLAlchemy engine, and then use it to create sessions 
+automatically scoped to a specific tenant:
 
 ```python
 with manager.new_session("tenant_1") as session:
