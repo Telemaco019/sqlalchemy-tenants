@@ -180,3 +180,8 @@ async with manager.new_session("tenant_1") as session:
 
 **🔍 Want more?**
 Check out the [examples](./examples/overview.md) for additional use cases.
+
+## License
+
+This project is licensed under the MIT license.
+See the [LICENSE](./LICENSE) file for details.
