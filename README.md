@@ -92,7 +92,7 @@ async with manager.new_session("tenant_1") as session:
 ## Key Features
 
 - 🔒 **Strong Data Segregation via RLS**: Automatic query and write scoping using
-  PostgreSQL's Row-Level Security.
+  Row-Level Security.
 - ⚙️ **Straightforward Integration**: Just a decorator and a session manager.
 - 📦 **Full SQLAlchemy support**: Compatible with both sync and async workflows.
 
