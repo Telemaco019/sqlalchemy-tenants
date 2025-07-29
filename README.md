@@ -25,6 +25,12 @@
 
 ---
 
+**Documentation**: <a href="https://sqlalchemy-tenants.michelezanotti.com" target="_blank"> sqlalchemy-tenants.michelezanotti.com </a>
+
+If you like the project please support it by leaving a star ✨
+
+---
+
 ## Overview
 
 **`sqlalchemy-tenants`** makes it easy and safe to implement multi-tenancy in your
