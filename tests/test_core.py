@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from sqlalchemy.orm import Mapped, mapped_column
 
-from src.sqlalchemy_tenants.core import get_table_policy, with_rls
+from sqlalchemy_tenants.core import get_table_policy, with_rls
 from tests.conftest import Base, TableTest
 
 

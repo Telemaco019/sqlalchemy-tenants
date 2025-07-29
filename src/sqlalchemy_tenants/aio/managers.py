@@ -8,12 +8,12 @@ from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from typing_extensions import Self, runtime_checkable
 
-from src.sqlalchemy_tenants.core import TENANT_ROLE_PREFIX, get_tenant_role_name
-from src.sqlalchemy_tenants.exceptions import (
+from sqlalchemy_tenants.core import TENANT_ROLE_PREFIX, get_tenant_role_name
+from sqlalchemy_tenants.exceptions import (
     TenantAlreadyExists,
     TenantNotFound,
 )
-from src.sqlalchemy_tenants.utils import pg_quote
+from sqlalchemy_tenants.utils import pg_quote
 
 logger = logging.getLogger(__name__)
 

@@ -8,15 +8,15 @@ help: ## Display this help.
 ##@ Dev
 .PHONY:
 start-services: ## Start the services locally
-	docker compose up -d db zap
+	docker compose up -d db
 
 .PHONY:
 stop-services: ## Stop the services running locally
-	docker compose down --remove-orphans db zap
+	docker compose down --remove-orphans db
 
 .PHONY: run
 run: ## Run the app
-	uv run python app
+	uv run fastapi dev app/main.py
 
 ##@ Linting
 .PHONY: ruff

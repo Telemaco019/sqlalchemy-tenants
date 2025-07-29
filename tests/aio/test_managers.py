@@ -4,9 +4,9 @@ from sqlalchemy import delete, select, text, update
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from src.sqlalchemy_tenants.aio.managers import PostgresManager
-from src.sqlalchemy_tenants.core import get_tenant_role_name
-from src.sqlalchemy_tenants.exceptions import (
+from sqlalchemy_tenants.aio.managers import PostgresManager
+from sqlalchemy_tenants.core import get_tenant_role_name
+from sqlalchemy_tenants.exceptions import (
     TenantAlreadyExists,
     TenantNotFound,
 )

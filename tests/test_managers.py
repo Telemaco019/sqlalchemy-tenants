@@ -3,12 +3,12 @@ from alembic.config import Config
 from sqlalchemy import Engine, delete, select, text, update
 from sqlalchemy.exc import ProgrammingError
 
-from src.sqlalchemy_tenants.core import get_tenant_role_name
-from src.sqlalchemy_tenants.exceptions import (
+from sqlalchemy_tenants.core import get_tenant_role_name
+from sqlalchemy_tenants.exceptions import (
     TenantAlreadyExists,
     TenantNotFound,
 )
-from src.sqlalchemy_tenants.managers import PostgresManager
+from sqlalchemy_tenants.managers import PostgresManager
 from tests.conftest import TableTest
 from tests.factories import new_tenant
 

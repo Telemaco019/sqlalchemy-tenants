@@ -158,13 +158,14 @@ This uses the `PostgresManager` instance created earlier to generate a session t
 enforces the correct RLS policies for the tenant extracted in step 4.
 
 ```py title="dependencies.py" 
-def _new_db_session(
+async def _new_db_session(
     tenant: Tenant_T,
-) -> Annotated[AsyncSession, Depends(new_session)]:
-    return manager.new_session(tenant=tenant)
+) -> AsyncGenerator[AsyncSession, None]:
+    async with manager.new_session(tenant=tenant) as sess:
+        yield sess
 
 
-Database_T = Annotated[Database_T, Depends(_new_db_session)]
+Database_T = Annotated[AsyncSession, Depends(_new_db_session)]
 ```
 
 ### 6. Use the tenant-scoped session in your FastAPI routes

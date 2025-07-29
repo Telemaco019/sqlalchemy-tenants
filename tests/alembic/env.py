@@ -4,7 +4,7 @@ from alembic import context
 from sqlalchemy import Connection, pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from src.sqlalchemy_tenants.core import get_process_revision_directives
+from sqlalchemy_tenants.core import get_process_revision_directives
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

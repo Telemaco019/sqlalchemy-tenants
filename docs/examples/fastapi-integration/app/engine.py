@@ -8,10 +8,10 @@ from sqlalchemy_tenants.aio import PostgresManager
 
 
 class PostgresSettings(BaseSettings):
-    SERVER: str
-    USER: str
-    PASSWORD: str
-    DB: str
+    SERVER: str = "localhost"
+    USER: str = "postgres"
+    PASSWORD: str = "changethis"
+    DB: str = "app"
     STATEMENT_TIMEOUT_SECONDS: int = 120
 
     model_config = {

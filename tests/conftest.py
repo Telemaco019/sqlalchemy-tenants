@@ -11,7 +11,7 @@ from sqlalchemy import Engine, NullPool, create_engine, text
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_column
 
-from src.sqlalchemy_tenants.core import TENANT_ROLE_PREFIX, with_rls
+from sqlalchemy_tenants.core import TENANT_ROLE_PREFIX, with_rls
 
 
 class Base(MappedAsDataclass, DeclarativeBase):

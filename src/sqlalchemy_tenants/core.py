@@ -5,7 +5,7 @@ from alembic.runtime.migration import MigrationContext
 from sqlalchemy import MetaData, inspect, text
 from sqlalchemy.orm import DeclarativeBase
 
-from src.sqlalchemy_tenants.utils import (
+from sqlalchemy_tenants.utils import (
     function_exists,
     normalize_whitespace,
 )
