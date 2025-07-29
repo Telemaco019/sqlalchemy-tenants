@@ -8,7 +8,7 @@
   <em>Multi-tenancy with SQLAlchemy made easy.</em>
 </p>
 
-<p style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+<p style="text-align: center;">
   <a href="https://github.com/Telemaco019/sqlalchemy-tenants/actions?query=workflow%3ATest+event%3Apush+branch%3Amain" target="_blank">
     <img src="https://github.com/Telemaco019/sqlalchemy-tenants/actions/workflows/test.yml/badge.svg?event=push&branch=main" alt="Test">
   </a>
