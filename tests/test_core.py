@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy.orm import Mapped, mapped_column
 
 from sqlalchemy_tenants.core import get_table_policy, with_rls
-from tests.conftest import Base, TableTest
+from tests.conftest import Base, TableTestTenantStr
 
 
 class TestWithRLS:
@@ -41,5 +41,8 @@ class TestWithRLS:
         migration_content = migration_file.read_text()
         # Check for RLS SQL
         assert "ENABLE ROW LEVEL SECURITY" in migration_content, migration_content
-        expected_policy = get_table_policy(TableTest.__tablename__)
+        expected_policy = get_table_policy(
+            table_name=TableTestTenantStr.__tablename__,
+            column_type=str,
+        )
         assert expected_policy in migration_content, migration_content

@@ -3,6 +3,7 @@ import sys
 from asyncio import AbstractEventLoop
 from pathlib import Path
 from typing import Any, AsyncGenerator, Generator
+from uuid import UUID
 
 import pytest
 from alembic import command
@@ -19,12 +20,30 @@ class Base(MappedAsDataclass, DeclarativeBase):
 
 
 @with_rls
-class TableTest(Base):
-    __tablename__ = "test_table"
+class TableTestTenantStr(Base):
+    __tablename__ = "test_table_tenant_str"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column()
     tenant: Mapped[str] = mapped_column()
+
+
+@with_rls
+class TableTestTenantInt(Base):
+    __tablename__ = "test_table_tenant_int"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column()
+    tenant: Mapped[int] = mapped_column()
+
+
+@with_rls
+class TableTestTenantUUID(Base):
+    __tablename__ = "test_table_tenant_uuid"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column()
+    tenant: Mapped[UUID] = mapped_column()
 
 
 class AnotherTable(Base):

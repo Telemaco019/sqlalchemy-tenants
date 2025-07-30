@@ -12,7 +12,7 @@ from sqlalchemy_tenants.utils import (
 )
 
 TENANT_ROLE_PREFIX = "tenant_"
-TENANT_SUPPORTED_TYPES = {str}
+TENANT_SUPPORTED_TYPES = {str, int, UUID}
 GET_TENANT_FUNCTION_NAME = "sqlalchemy_tenants_get_tenant"
 
 _POLICY_NAME = "sqlalchemy_tenants_all"
@@ -22,10 +22,10 @@ ON {table_name}
 AS PERMISSIVE
 FOR ALL
 USING (
-    tenant = ( select {get_tenant_fn}()::varchar )
+    tenant = ( select {get_tenant_fn}()::{sql_type} )
 )
 WITH CHECK (
-    tenant = ( select {get_tenant_fn}()::varchar )
+    tenant = ( select {get_tenant_fn}()::{sql_type} )
 )
 """
 
@@ -47,14 +47,23 @@ $$;
 TenantIdentifier = str | UUID | int
 
 
-def get_table_policy(table_name: str) -> str:
+def get_table_policy(*, table_name: str, column_type: Type[TenantIdentifier]) -> str:
     """
     Returns the SQL policy for a given table name.
     """
+    if column_type is str:
+        sql_type = "varchar"
+    elif column_type is int:
+        sql_type = "integer"
+    elif column_type is UUID:
+        sql_type = "uuid"
+    else:
+        raise TypeError(f"Unknown column type {column_type}")
     policy = _POLICY_TEMPLATE.format(
         table_name=table_name,
         get_tenant_fn=GET_TENANT_FUNCTION_NAME,
         policy_name=_POLICY_NAME,
+        sql_type=sql_type,
     )
     return normalize_whitespace(policy)
 
@@ -155,7 +164,10 @@ def get_process_revision_directives(
 
             # Create policy
             policy_name = "sqlalchemy_tenants_all"
-            policy = get_table_policy(table_name)
+            policy = get_table_policy(
+                table_name=table_name,
+                column_type=getattr(model, _ATTRIBUTE_TENANT_COLUMN_TYPE),
+            )
             exists = conn.execute(
                 text(
                     """
