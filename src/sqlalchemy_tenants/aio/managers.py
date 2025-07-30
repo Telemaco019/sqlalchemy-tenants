@@ -8,7 +8,11 @@ from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from typing_extensions import Self, runtime_checkable
 
-from sqlalchemy_tenants.core import TENANT_ROLE_PREFIX, get_tenant_role_name
+from sqlalchemy_tenants.core import (
+    TENANT_ROLE_PREFIX,
+    TenantIdentifier,
+    get_tenant_role_name,
+)
 from sqlalchemy_tenants.exceptions import (
     TenantAlreadyExists,
     TenantNotFound,
@@ -21,16 +25,16 @@ logger = logging.getLogger(__name__)
 @runtime_checkable
 class DBManager(Protocol):
     @abstractmethod
-    async def create_tenant(self, tenant: str) -> None:
+    async def create_tenant(self, tenant: TenantIdentifier) -> None:
         """
-        Create a new tenant with the specified name.
+        Create a new tenant with the specified identifier.
 
         Args:
-            tenant: The name of the tenant to create.
+            tenant: The identifier of the tenant to create.
         """
 
     @abstractmethod
-    async def delete_tenant(self, tenant: str) -> None:
+    async def delete_tenant(self, tenant: TenantIdentifier) -> None:
         """
         Delete a tenant and all its associated roles and privileges,
         reassigning owned objects to the current user.
@@ -38,11 +42,11 @@ class DBManager(Protocol):
         No data will be deleted, only the role and privileges.
 
         Args:
-            tenant: The name of the tenant to delete.
+            tenant: The identifier of the tenant to delete.
         """
 
     @abstractmethod
-    async def list_tenants(self) -> Set[str]:
+    async def list_tenants(self) -> Set[TenantIdentifier]:
         """
         Get all the available tenants.
 
@@ -53,7 +57,7 @@ class DBManager(Protocol):
     @abstractmethod
     def new_session(
         self,
-        tenant: str,
+        tenant: TenantIdentifier,
         create_if_missing: bool = True,
     ) -> AsyncContextManager[AsyncSession]:
         """
@@ -128,7 +132,7 @@ class PostgresManager(DBManager):
         )
         return result.scalar() is not None
 
-    async def create_tenant(self, tenant: str) -> None:
+    async def create_tenant(self, tenant: TenantIdentifier) -> None:
         logger.info("creating tenant %s", tenant)
         async with self.new_admin_session() as sess:
             role = get_tenant_role_name(tenant)
@@ -156,7 +160,7 @@ class PostgresManager(DBManager):
             )
             await sess.commit()
 
-    async def delete_tenant(self, tenant: str) -> None:
+    async def delete_tenant(self, tenant: TenantIdentifier) -> None:
         logger.info("deleting tenant %s", tenant)
         async with self.new_admin_session() as sess:
             role = get_tenant_role_name(tenant)
@@ -171,7 +175,7 @@ class PostgresManager(DBManager):
             await sess.execute(text(f"DROP ROLE {safe_role}"))
             await sess.commit()
 
-    async def list_tenants(self) -> Set[str]:
+    async def list_tenants(self) -> Set[TenantIdentifier]:
         async with self.new_admin_session() as sess:
             result = await sess.execute(
                 text(
@@ -192,7 +196,7 @@ class PostgresManager(DBManager):
     @asynccontextmanager
     async def new_session(
         self,
-        tenant: str,
+        tenant: TenantIdentifier,
         create_if_missing: bool = True,
     ) -> AsyncGenerator[AsyncSession, None]:
         async with self.session_maker() as session:

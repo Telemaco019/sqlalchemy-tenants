@@ -1,32 +1,37 @@
 import logging
 from abc import abstractmethod
 from contextlib import contextmanager
-from typing import ContextManager, Generator, Set
+from typing import ContextManager, Generator, Protocol, Set
 
 from sqlalchemy import Engine, text
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session, sessionmaker
-from typing_extensions import Self
+from typing_extensions import Self, runtime_checkable
 
-from sqlalchemy_tenants.core import TENANT_ROLE_PREFIX, get_tenant_role_name
+from sqlalchemy_tenants.core import (
+    TENANT_ROLE_PREFIX,
+    TenantIdentifier,
+    get_tenant_role_name,
+)
 from sqlalchemy_tenants.exceptions import TenantAlreadyExists, TenantNotFound
 from sqlalchemy_tenants.utils import pg_quote
 
 logger = logging.getLogger(__name__)
 
 
-class DBManager:
+@runtime_checkable
+class DBManager(Protocol):
     @abstractmethod
-    def create_tenant(self, tenant: str) -> None:
+    def create_tenant(self, tenant: TenantIdentifier) -> None:
         """
-        Create a new tenant with the specified name.
+        Create a new tenant with the specified identifier.
 
         Args:
-            tenant: The name of the tenant to create.
+            tenant: The identifier (slug or ID) of the tenant to create.
         """
 
     @abstractmethod
-    def delete_tenant(self, tenant: str) -> None:
+    def delete_tenant(self, tenant: TenantIdentifier) -> None:
         """
         Delete a tenant and all its associated roles and privileges,
         reassigning owned objects to the current user.
@@ -34,11 +39,11 @@ class DBManager:
         No data will be deleted, only the role and privileges.
 
         Args:
-            tenant: The name of the tenant to delete.
+            tenant: The identifier of the tenant to delete.
         """
 
     @abstractmethod
-    def list_tenants(self) -> Set[str]:
+    def list_tenants(self) -> Set[TenantIdentifier]:
         """
         Get all the available tenants.
 
@@ -49,7 +54,7 @@ class DBManager:
     @abstractmethod
     def new_session(
         self,
-        tenant: str,
+        tenant: TenantIdentifier,
         create_if_missing: bool = True,
     ) -> ContextManager[Session]:
         """
@@ -60,8 +65,7 @@ class DBManager:
         to data belonging to the specified tenant.
 
         Args:
-            tenant: The tenant identifier, which must match a valid PostgreSQL role
-                used for RLS enforcement.
+            tenant: The identifier of the tenant.
             create_if_missing: Whether to create the tenant role if it doesn't exist.
 
         Yields:
@@ -85,7 +89,7 @@ class DBManager:
         """
 
 
-class PostgresManager:
+class PostgresManager(DBManager):
     def __init__(
         self,
         schema_name: str,
@@ -124,7 +128,7 @@ class PostgresManager:
         )
         return result.scalar() is not None
 
-    def create_tenant(self, tenant: str) -> None:
+    def create_tenant(self, tenant: TenantIdentifier) -> None:
         logger.info("creating tenant %s", tenant)
         with self.new_admin_session() as sess:
             role = get_tenant_role_name(tenant)
@@ -150,7 +154,7 @@ class PostgresManager:
             )
             sess.commit()
 
-    def delete_tenant(self, tenant: str) -> None:
+    def delete_tenant(self, tenant: TenantIdentifier) -> None:
         logger.info("deleting tenant %s", tenant)
         with self.new_admin_session() as sess:
             role = get_tenant_role_name(tenant)
@@ -165,7 +169,7 @@ class PostgresManager:
             sess.execute(text(f"DROP ROLE {safe_role}"))
             sess.commit()
 
-    def list_tenants(self) -> Set[str]:
+    def list_tenants(self) -> Set[TenantIdentifier]:
         with self.new_admin_session() as sess:
             result = sess.execute(
                 text(
@@ -186,7 +190,7 @@ class PostgresManager:
     @contextmanager
     def new_session(
         self,
-        tenant: str,
+        tenant: TenantIdentifier,
         create_if_missing: bool = True,
     ) -> Generator[Session, None, None]:
         with self.session_maker() as session:

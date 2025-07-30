@@ -1,4 +1,5 @@
 from typing import Callable, Iterable, List, Optional, Sequence, Type, Union
+from uuid import UUID
 
 from alembic.operations import MigrationScript, ops
 from alembic.runtime.migration import MigrationContext
@@ -43,6 +44,8 @@ $$
 $$;
 """
 
+TenantIdentifier = str | UUID | int
+
 
 def get_table_policy(table_name: str) -> str:
     """
@@ -56,7 +59,7 @@ def get_table_policy(table_name: str) -> str:
     return normalize_whitespace(policy)
 
 
-def get_tenant_role_name(tenant: str) -> str:
+def get_tenant_role_name(tenant: TenantIdentifier) -> str:
     """
     Get the Postgres role name for the given tenant.
 
@@ -66,7 +69,7 @@ def get_tenant_role_name(tenant: str) -> str:
     Returns:
         The Postgres role name for the tenant.
     """
-    return f"{TENANT_ROLE_PREFIX}{tenant}"
+    return f"{TENANT_ROLE_PREFIX}{str(tenant)}"
 
 
 def get_process_revision_directives(
@@ -206,4 +209,7 @@ def with_rls(cls: Type[DeclarativeBase]) -> Type[DeclarativeBase]:
         )
 
     setattr(cls.__table__, _ATTRIBUTE_RLS_ENABLED, True)
+    setattr(
+        cls.__table__, _ATTRIBUTE_TENANT_COLUMN_TYPE, tenant_column.type.python_type
+    )
     return cls
