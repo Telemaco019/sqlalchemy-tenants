@@ -11,6 +11,7 @@ from sqlalchemy_tenants.utils import (
 )
 
 TENANT_ROLE_PREFIX = "tenant_"
+TENANT_SUPPORTED_TYPES = {str}
 GET_TENANT_FUNCTION_NAME = "sqlalchemy_tenants_get_tenant"
 
 _POLICY_NAME = "sqlalchemy_tenants_all"
@@ -26,6 +27,9 @@ WITH CHECK (
     tenant = ( select {get_tenant_fn}()::varchar )
 )
 """
+
+_ATTRIBUTE_RLS_ENABLED = "__rls_enabled__"
+_ATTRIBUTE_TENANT_COLUMN_TYPE = "__tenant_column_type__"
 
 _GET_TENANT_FUNCTION_TEMPLATE = """ \
 CREATE OR REPLACE FUNCTION {name}()
@@ -113,7 +117,7 @@ def get_process_revision_directives(
             model = table.metadata.tables.get(table_name, None)
 
             # Skip if not marked for RLS
-            if model is None or not getattr(model, "__rls_enabled__", False):
+            if model is None or not getattr(model, _ATTRIBUTE_RLS_ENABLED, False):
                 continue
 
             # Check if RLS is already enabled
@@ -194,13 +198,12 @@ def with_rls(cls: Type[DeclarativeBase]) -> Type[DeclarativeBase]:
         )
 
     tenant_column = mapper.columns["tenant"]
-    if tenant_column.type.python_type is not str:
+    if tenant_column.type.python_type not in TENANT_SUPPORTED_TYPES:
         raise TypeError(
             f"Model '{cls.__name__}' is marked for RLS but 'tenant' "
-            f"has type '{tenant_column.type.python_type}', expected 'str'."
-            "\nHint: you can use 'sqlalchemy_tenant TenantMixin' class to add it "
-            "easily."
+            f"has type '{tenant_column.type.python_type}', expected one "
+            f"of the following: {', '.join(map(str, TENANT_SUPPORTED_TYPES))}."
         )
 
-    cls.__table__.__rls_enabled__ = True  # type: ignore[attr-defined]
+    setattr(cls.__table__, _ATTRIBUTE_RLS_ENABLED, True)
     return cls

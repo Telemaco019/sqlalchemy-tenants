@@ -18,6 +18,16 @@ class TestWithRLS:
         with pytest.raises(TypeError):
             with_rls(MissingTenantTable)
 
+    def test_wrong_tenant_column_type(self) -> None:
+        class WrongTenantTypeTable(Base):
+            __tablename__ = "wrong_tenant_type_table"
+
+            id: Mapped[int] = mapped_column(primary_key=True)
+            tenant: Mapped[float] = mapped_column()
+
+        with pytest.raises(TypeError):
+            with_rls(WrongTenantTypeTable)
+
     def test_rls_migrations_generation(
         self,
         postgres_dsn_asyncpg: str,
