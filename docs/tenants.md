@@ -27,7 +27,7 @@ during normal usage. It’s best to call `create_tenant()` from your tenant crea
 ```python
 manager = PostgresManager.from_engine(engine)
 
-def create_tenant(tenant: str) -> None:
+def create_tenant(tenant: str | int | UUID) -> None:
     # 1. Store tenant metadata
     # 2. Setup database-level access
     manager.create_tenant(tenant)
