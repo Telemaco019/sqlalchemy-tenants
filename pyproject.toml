@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Michele Zanotti", email = "m.zanotti019@gmail.com" }
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.14"
 dependencies = [
     "alembic>=1.10.0",
     "sqlalchemy>=2.0.0",
