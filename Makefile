@@ -15,7 +15,7 @@ stop-services: ## Stop the services running locally
 
 .PHONY: test
 test: ## Run the unit tests
-	uv run pytest --cov=src --cov-context=test
+	uv run pytest --cov=src --cov-context=test --cov-branch --cov-report=xml
 
 ##@ Linting
 .PHONY: ruff
