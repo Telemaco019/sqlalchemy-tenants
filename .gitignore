@@ -17,3 +17,4 @@ wheels/
 
 site/
 .DS_Store
+coverage.xml
