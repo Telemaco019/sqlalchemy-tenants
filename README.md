@@ -18,7 +18,7 @@
 
 ---
 
-**Documentation**: <a href="https://telemaco019.github.io/sqlalchemy-tenants/" target="_blank"> telemaco019.github.io/sqlalchemy-tenants/ </a>
+**Documentation**: <a href="https://telemaco019.github.io/sqlalchemy-tenants/" target="_blank"> telemaco019.github.io/sqlalchemy-tenants </a>
 
 If you like the project please support it by leaving a star ✨
 
