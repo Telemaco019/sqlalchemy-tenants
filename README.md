@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://github.com/Telemaco019/sqlalchemy-tenants">
-    <img src="assets/logo.svg" alt="sqlalchemy-tenants" height="150">
+    <img src="docs/assets/logo.svg" alt="sqlalchemy-tenants" height="150">
   </a>
 </p>
 
