@@ -1,0 +1,132 @@
+[project]
+name = "fastapi-example"
+version = "0.0.1"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Michele Zanotti", email = "m.zanotti019@gmail.com" }
+]
+requires-python = ">=3.10"
+dependencies = [
+    "alembic>=1.10.0",
+    "pydantic-settings>=2.10.1",
+    "sqlalchemy>=2.0.0",
+    "fastapi[standard]>=0.116.1",
+    "asyncpg>=0.30.0",
+    "greenlet>=3.2.3",
+    "sqlalchemy-tenants",
+    "python-jose>=3.5.0",
+]
+
+[tool.uv.sources]
+sqlalchemy-tenants = { path = "../../../" , editable = true }
+
+[tool.mypy]
+strict = true
+disallow_untyped_defs = true
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "I",
+    "C90",
+    "ASYNC",
+    "T20",
+    "PL",
+    "SIM",
+    "PIE",
+    "NPY",
+    "PGH",
+]
+ignore = [
+    "PLR0913", # Too many arguments
+    #    "PLR2004", # Magic value used in comparison
+    #    "PLR0911", # Too many return statements
+]
+
+# Allow autofix for all enabled rules (when `--fix`) is provided.
+fixable = [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "I",
+    "N",
+    "Q",
+    "S",
+    "T",
+    "W",
+    "ANN",
+    "ARG",
+    "BLE",
+    "COM",
+    "DJ",
+    "DTZ",
+    "EM",
+    "ERA",
+    "EXE",
+    "FBT",
+    "ICN",
+    "INP",
+    "ISC",
+    "NPY",
+    "PD",
+    "PGH",
+    "PIE",
+    "PL",
+    "PT",
+    "PTH",
+    "PYI",
+    "RET",
+    "RSE",
+    "RUF",
+    "SIM",
+    "SLF",
+    "TCH",
+    "TID",
+    "TRY",
+    "UP",
+    "YTT",
+]
+unfixable = []
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**.py" = [
+    "E402", # Module level import not at top of file
+    "PLR2004", # Magic value used in comparison
+]
+
+[tool.ruff.lint.mccabe]
+# Unlike Flake8, default to a complexity level of 10.
+max-complexity = 10
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.coverage.report]
+skip_empty = true
+
+[tool.coverage.html]
+show_contexts = true
+
+[tool.pytest.ini_options]
+addopts = ["--strict-config", "--strict-markers"]
+minversion = "8.0"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[dependency-groups]
+dev = [
+    "black>=25.1.0",
+    "mypy>=1.17.0",
+    "ruff>=0.12.5",
+    "types-python-jose>=3.5.0.20250531",
+]
