@@ -18,7 +18,7 @@
 
 ---
 
-**Documentation**: <a href="https://sqlalchemy-tenants.michelezanotti.com" target="_blank"> sqlalchemy-tenants.michelezanotti.com </a>
+**Documentation**: <a href="https://telemaco019.github.io/sqlalchemy-tenants/" target="_blank"> telemaco019.github.io/sqlalchemy-tenants/ </a>
 
 If you like the project please support it by leaving a star ✨
 
@@ -79,7 +79,7 @@ async with manager.new_tenant_session("tenant_1") as session:
 
 Both sync and async versions are available. 
 
-**🔍 Want more?** Check out the [documentation](https://sqlalchemy-tenants.michelezanotti.com) and the [examples](./docs/examples) for additional use cases.
+**🔍 Want more?** Check out the [documentation](https://telemaco019.github.io/sqlalchemy-tenants/) and the [examples](./docs/examples) for additional use cases.
 
 ## License
 
