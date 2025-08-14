@@ -9,15 +9,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Telemaco019/sqlalchemy-tenants/actions?query=workflow%3ATest+event%3Apush+branch%3Amain">
-    <img src="https://github.com/Telemaco019/sqlalchemy-tenants/actions/workflows/test.yml/badge.svg?event=push&branch=main" alt="Test">
-  </a>
-  <a href="https://github.com/Telemaco019/sqlalchemy-tenants/actions?query=workflow%3APublish">
-    <img src="https://github.com/Telemaco019/sqlalchemy-tenants/actions/workflows/publish.yml/badge.svg" alt="Publish">
-  </a>
-  <a href="https://coverage-badge.samuelcolvin.workers.dev/redirect/Telemaco019/sqlalchemy-tenants">
-    <img src="https://coverage-badge.samuelcolvin.workers.dev/Telemaco019/sqlalchemy-tenants.svg" alt="Coverage">
-  </a>
+  <img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/Telemaco019/sqlalchemy-tenants/.github%2Fworkflows%2Fci.yaml">
+  <img alt="Codecov (with branch)" src="https://img.shields.io/codecov/c/github/Telemaco019/sqlalchemy-tenants/main">
   <a href="https://pypi.org/project/sqlalchemy-tenants">
     <img src="https://img.shields.io/pypi/v/sqlalchemy-tenants?color=%2334D058&label=pypi%20package" alt="Package version">
   </a>
