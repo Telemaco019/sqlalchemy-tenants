@@ -7,7 +7,7 @@ from sqlalchemy import delete, select, text, update
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from sqlalchemy_tenants.aio.managers import PostgresManager
+from sqlalchemy_tenants.aio.managers import AsyncTenantSession, PostgresManager
 from sqlalchemy_tenants.core import get_tenant_role_name
 from sqlalchemy_tenants.exceptions import (
     TenantAlreadyExists,
@@ -282,3 +282,7 @@ class TestRLSIsEnforced:
             assert len(tenant_2_curs.scalars().all()) == len(tenant_rows[tenant_2])
             # Ensure no rows were updated to tenant_1
             assert all(r.tenant == tenant_2 for r in tenant_2_curs.scalars().all())
+
+
+def test_new_async_tenant_session_dont_break() -> None:
+    _ = AsyncTenantSession(tenant="test")

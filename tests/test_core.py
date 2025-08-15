@@ -28,6 +28,13 @@ class TestWithRLS:
         with pytest.raises(TypeError):
             with_rls(WrongTenantTypeTable)
 
+    def test_not_orm_class_raises_error(self) -> None:
+        class NotORM:
+            pass
+
+        with pytest.raises(TypeError):
+            with_rls(NotORM)
+
     def test_rls_migrations_generation(
         self,
         postgres_dsn_asyncpg: str,

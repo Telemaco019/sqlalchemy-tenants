@@ -11,7 +11,7 @@ from sqlalchemy_tenants.exceptions import (
     TenantAlreadyExists,
     TenantNotFound,
 )
-from sqlalchemy_tenants.managers import PostgresManager
+from sqlalchemy_tenants.managers import PostgresManager, TenantSession
 from tests.conftest import TableTestTenantInt, TableTestTenantStr, TableTestTenantUUID
 from tests.factories import new_tenant_str
 
@@ -275,3 +275,7 @@ class TestRLSIsEnforced:
             assert len(tenant_2_curs.scalars().all()) == len(tenant_rows[tenant_2])
             # Ensure no rows were updated to tenant_1
             assert all(r.tenant == tenant_2 for r in tenant_2_curs.scalars().all())
+
+
+def test_new_tenant_session_dont_break() -> None:
+    _ = TenantSession(tenant="test")

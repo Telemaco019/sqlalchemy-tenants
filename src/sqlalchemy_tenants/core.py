@@ -58,7 +58,7 @@ def get_table_policy(*, table_name: str, column_type: Type[TenantIdentifier]) ->
     elif column_type is UUID:
         sql_type = "uuid"
     else:
-        raise TypeError(f"Unknown column type {column_type}")
+        raise TypeError(f"Unknown column type {column_type}")  # pragma: no cover
     policy = _POLICY_TEMPLATE.format(
         table_name=table_name,
         get_tenant_fn=GET_TENANT_FUNCTION_NAME,
