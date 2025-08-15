@@ -33,7 +33,7 @@ class TestWithRLS:
             pass
 
         with pytest.raises(TypeError):
-            with_rls(NotORM)
+            with_rls(NotORM)  # type: ignore[type-var]
 
     def test_rls_migrations_generation(
         self,
