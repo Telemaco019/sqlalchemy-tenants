@@ -152,13 +152,13 @@ def get_process_revision_directives(
             if not rls_enabled:
                 upgrade_ops.append(
                     ops.ExecuteSQLOp(
-                        f"ALTER TABLE {table_name} ENABLE ROW LEVEL SECURITY"
+                        f'ALTER TABLE "{table_name}" ENABLE ROW LEVEL SECURITY'
                     )
                 )
                 downgrade_ops.insert(
                     0,
                     ops.ExecuteSQLOp(
-                        f"ALTER TABLE {table_name} DISABLE ROW LEVEL SECURITY"
+                        f'ALTER TABLE "{table_name}" DISABLE ROW LEVEL SECURITY'
                     ),
                 )
 
