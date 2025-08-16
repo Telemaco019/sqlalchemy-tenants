@@ -18,7 +18,7 @@ GET_TENANT_FUNCTION_NAME = "sqlalchemy_tenants_get_tenant"
 _POLICY_NAME = "sqlalchemy_tenants_all"
 _POLICY_TEMPLATE = """\
 CREATE POLICY {policy_name} 
-ON {table_name}
+ON "{table_name}"
 AS PERMISSIVE
 FOR ALL
 USING (
