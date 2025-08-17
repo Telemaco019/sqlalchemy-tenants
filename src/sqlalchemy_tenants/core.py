@@ -187,7 +187,7 @@ def get_process_revision_directives(
             if not exists:
                 upgrade_ops.append(ops.ExecuteSQLOp(policy))
                 downgrade_ops.insert(
-                    0, ops.ExecuteSQLOp(f"DROP POLICY {policy_name} ON {table_name}")
+                    0, ops.ExecuteSQLOp(f'DROP POLICY {policy_name} ON "{table_name}"')
                 )
 
     return process_revision_directives
