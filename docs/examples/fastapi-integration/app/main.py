@@ -1,4 +1,6 @@
-from typing import Sequence
+import logging
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator, Sequence
 from uuid import UUID, uuid4
 
 from fastapi import FastAPI
@@ -7,8 +9,27 @@ from sqlalchemy import select
 
 from app import orm
 from app.dependencies import Database_T
+from app.engine import manager
 
-app = FastAPI()
+logger = logging.getLogger(__name__)
+
+TENANTS_SEED = {
+    "acme_corp",
+    "blue_rocket",
+    "sunrise_llc",
+}
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
+    tenants = await manager.list_tenants()
+    for tenant in TENANTS_SEED - tenants:
+        logger.info("creating tenant %s", tenant)
+        await manager.create_tenant(tenant)
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 class TodoItemResp(BaseModel):

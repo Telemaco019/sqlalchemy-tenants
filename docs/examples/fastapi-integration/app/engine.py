@@ -12,6 +12,7 @@ class PostgresSettings(BaseSettings):
     USER: str = "postgres"
     PASSWORD: str = "changethis"
     DB: str = "app"
+    PORT: int = 5439
     STATEMENT_TIMEOUT_SECONDS: int = 120
 
     model_config = {
@@ -35,6 +36,7 @@ class PostgresSettings(BaseSettings):
             password=self.escaped_password,
             host=self.SERVER,
             path=self.DB,
+            port=self.PORT,
         )
 
 
