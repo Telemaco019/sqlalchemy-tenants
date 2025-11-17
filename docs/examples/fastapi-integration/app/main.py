@@ -33,7 +33,7 @@ async def create_todo(db: Database_T, req: CreateTodoItemReq) -> TodoItemResp:
     new_todo = orm.TodoItem(
         id=uuid4(),
         name=req.name,
-        tenant=str(db.tenant),
+        tenant=UUID(str(db.tenant)),
     )
     db.add(new_todo)
     await db.commit()

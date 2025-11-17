@@ -207,6 +207,7 @@ def with_rls(cls: Type[T]) -> Type[T]:
             f"@with_rls must be applied to a SQLAlchemy ORM model class, got: {cls}"
         )
 
+    print(mapper.columns)
     if "tenant" not in mapper.columns:
         raise TypeError(
             f"Model '{cls.__name__}' is marked for RLS but is missing a required "
