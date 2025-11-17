@@ -64,6 +64,7 @@ async def create_tenant(req: CreateTenantReq) -> CreateTenantResp:
             description=req.description,
         )
         sess.add(new_tenant)
+        await manager.create_tenant(new_tenant.id)
         await sess.commit()
         return CreateTenantResp(
             id=new_tenant.id,
