@@ -1,6 +1,5 @@
 import logging
-from contextlib import asynccontextmanager
-from typing import AsyncGenerator, Sequence
+from typing import Sequence
 from uuid import UUID, uuid4
 
 from fastapi import FastAPI
@@ -13,23 +12,7 @@ from app.engine import manager
 
 logger = logging.getLogger(__name__)
 
-TENANTS_SEED = {
-    "acme_corp",
-    "blue_rocket",
-    "sunrise_llc",
-}
-
-
-@asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
-    tenants = await manager.list_tenants()
-    for tenant in TENANTS_SEED - tenants:
-        logger.info("creating tenant %s", tenant)
-        await manager.create_tenant(tenant)
-    yield
-
-
-app = FastAPI(lifespan=lifespan)
+app = FastAPI()
 
 
 class TodoItemResp(BaseModel):
@@ -39,6 +22,17 @@ class TodoItemResp(BaseModel):
 
 class CreateTodoItemReq(BaseModel):
     name: str
+
+
+class CreateTenantReq(BaseModel):
+    slug: str
+    description: str
+
+
+class CreateTenantResp(BaseModel):
+    id: UUID
+    slug: str
+    description: str
 
 
 @app.get("/todos")
@@ -59,3 +53,20 @@ async def create_todo(db: Database_T, req: CreateTodoItemReq) -> TodoItemResp:
     db.add(new_todo)
     await db.commit()
     return TodoItemResp(id=new_todo.id, name=new_todo.name)
+
+
+@app.get("/tenants")
+async def create_tenant(req: CreateTenantReq) -> CreateTenantResp:
+    async with manager.new_session() as sess:
+        new_tenant = orm.Tenant(
+            id=uuid4(),
+            slug=req.slug,
+            description=req.description,
+        )
+        sess.add(new_tenant)
+        await sess.commit()
+        return CreateTenantResp(
+            id=new_tenant.id,
+            slug=new_tenant.slug,
+            description=new_tenant.description,
+        )
