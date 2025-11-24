@@ -48,13 +48,15 @@ async def delete_tenant(
     tenant_id: UUID,
 ) -> Response:
     async with manager.new_session() as sess:
-        tenant = await sess.get(orm.Tenant, tenant_id)  # Ensure tenant exists
+        # Delete the tenant from the DB table
+        tenant = await sess.get(orm.Tenant, tenant_id)
         if tenant is None:
             return JSONResponse(
                 content={"detail": f"tenant {tenant_id} not found."},
                 status_code=status.HTTP_404_NOT_FOUND,
             )
         await sess.delete(tenant)
+        # Cleanup the tenant role and associated objects
         await manager.delete_tenant(tenant_id)
         await sess.commit()
         return JSONResponse(
