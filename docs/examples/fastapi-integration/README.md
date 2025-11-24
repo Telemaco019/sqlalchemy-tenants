@@ -45,6 +45,21 @@ The example provides a simple todo API that automatically scopes data to the cur
 curl -H "Authorization: Bearer <your-jwt-token>" http://localhost:8000/todos
 ```
 
+### Create a tenant
+```bash
+curl -X POST http://localhost:8000/tenants \
+  -H "Content-Type: application/json" \
+  -d '{
+    "slug": "acme",
+    "description": "Acme Corp tenant"
+  }'
+```
+
+### Delete a tenant
+```bash
+curl -X DELETE http://localhost:8000/tenants/7f3cbb34-f884-4742-bfc8-3f5e6a5d0edf
+```
+
 ## Project Structure
 
 - `app/main.py` - FastAPI application with tenant-scoped routes

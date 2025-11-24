@@ -5,6 +5,8 @@ from uuid import UUID, uuid4
 from fastapi import FastAPI
 from pydantic import BaseModel
 from sqlalchemy import select
+from starlette import status
+from starlette.responses import JSONResponse, Response
 
 from app import orm
 from app.dependencies import Database_T
@@ -55,7 +57,7 @@ async def create_todo(db: Database_T, req: CreateTodoItemReq) -> TodoItemResp:
     return TodoItemResp(id=new_todo.id, name=new_todo.name)
 
 
-@app.get("/tenants")
+@app.post("/tenants")
 async def create_tenant(req: CreateTenantReq) -> CreateTenantResp:
     async with manager.new_session() as sess:
         new_tenant = orm.Tenant(
@@ -70,4 +72,16 @@ async def create_tenant(req: CreateTenantReq) -> CreateTenantResp:
             id=new_tenant.id,
             slug=new_tenant.slug,
             description=new_tenant.description,
+        )
+
+@app.delete("/tenants/{tenant_id}")
+async def delete_tenant(
+    tenant_id: UUID,
+) -> Response:
+    async with manager.new_session() as sess:
+        await manager.delete_tenant(tenant_id)
+        await sess.commit()
+        return JSONResponse(
+            content={"detail": f"tenant {tenant_id} deleted."},
+            status_code=status.HTTP_202_ACCEPTED,
         )
