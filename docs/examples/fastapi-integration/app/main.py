@@ -74,6 +74,7 @@ async def create_tenant(req: CreateTenantReq) -> CreateTenantResp:
             description=new_tenant.description,
         )
 
+
 @app.delete("/tenants/{tenant_id}")
 async def delete_tenant(
     tenant_id: UUID,
